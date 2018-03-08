@@ -3,14 +3,15 @@
 
 ### 1)   Ensure PowerShell 3.0 and .NET are installed.
 
-Ensure that PowerShell 3.0 is installed in your desktop. 
-If you installed service pack 1 on Windows 7 or Windows 2008 R2, PS 3.0 should be there. 
-We also need .NET 4.0 installed on the OS. To find out the version, run Powershell and enter the command:  
+Ensure that PowerShell 3.0 is installed on the target workstation.
+For Windows 7 SP1 and Windows 2008 R2, Powershell 3.0 should already be installed. 
+We also need .NET 4.0 installed on the OS. To find out the Powershell version, start Powershell and then enter the version command as shown:  
 ```
+powershell
 $host.version 
  ```
  
-Install the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.
+If you are downlevel, nstalling the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.
 
 To find out the current version of .NET Framework, enter the following in PowerShell:
 ```
