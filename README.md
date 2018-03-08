@@ -33,7 +33,10 @@ Get-ChildItem Env:\PSModulePath | format-list
 
 ### 4)  Copy actpowercli into place
 
-Unzip the ActPOWERCLI-7.0.0.6.zip software and copy the ActPowerCLI to a relevant directory.  For example:
+1. Download the actpowercli zip file but don't unzip it
+1. Right select the downloaded zip file and choose properties
+1. At the bottom of the properties window select the Unblock button next to the message: *This file came from another computer and might be blocked to help protect this computer*
+1. Unzip the ActPOWERCLI-7.0.0.6.zip software and copy the ActPowerCLI folder inside it to a relevant directory.  For example:
 ```
 c:\windows\system32\windowspowershell\v1.0\modules 
 ```
