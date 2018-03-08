@@ -10,8 +10,7 @@ We also need .NET 4.0 installed on the OS. To find out the Powershell version, s
 powershell
 $host.version 
  ```
- 
-If you are downlevel, nstalling the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.
+If you are downlevel, installing the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.
 
 To find out the current version of .NET Framework, enter the following in PowerShell:
 ```
@@ -45,6 +44,24 @@ Import the module into the Powershell session by running:
 ```
 Import-module ActPowerCLI
 ```
+If you are running Powershell version 5 then extra steps to enable script command execution will be needed if you get an error like this:
+```
+PS C:\Users\av> connect-act
+connect-act : The 'connect-act' command was found in the module 'ActPowerCLI', but the module could not be loaded. For
+more information, run 'Import-Module ActPowerCLI'.
+At line:1 char:1
++ connect-act
++ ~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (connect-act:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CouldNotAutoloadMatchingModule
+
+```
+If you get this error we will need to modify the downloaded zip file and copy the folder again.
+1. Delete the actpowercli folder in c:\windows\system32\windowspowershell\v1.0\modules  or where ever you placed it
+1. Right select the downloaded zip file and choose properties
+1. At the bottom of the properties window select the Unblock button next to the message: *This file came from another computer and might be blocked to help protect this computer*
+1. Unzip and again copy the foler into c:\windows\system32\windowspowershell\v1.0\modules or which ever path you are using
+
 
 ### 6)  Find out the current version of ActPowerCLI:
 ```
