@@ -112,3 +112,73 @@ Connect-Act 10.61.5.114 -actuser admin -passwordfile "c:\temp\password.key"
 ```
 You will need to store the certificate during first login.
 
+### 10) Example commands
+
+To list all the Actifio clusters using the udsinfo command:
+```
+udsinfo lscluster
+```
+To list only the operative IP address:
+```
+(udsinfo lscluster).operativeip 
+```
+To grab the operative IP address for a specific Appliance (called *appliance1* in this example):
+```
+(udsinfo lscluster -filtervalue name=appliance1).operativeip
+```
+To list all the advanced options related to SQL server:
+```
+udsinfo lsappclass -name SQLServer
+```
+To list all the advanced options related to SQL server and display the results in a graphical popup window:
+```
+udsinfo lsappclass -name SQLServer | out-gridview
+```
+To list all the fields for all the SQL server databases:
+```
+udsinfo lsapplication | where-object {$_.appclass -eq "SQLServer"} 
+```
+To list selected fields for all the SQL server databases:
+```
+udsinfo lsapplication | where-object {$_.appclass -eq "SQLServer"} | select appname, id, hostid
+```
+To list all the snapshot jobs for appid 18405:
+```
+udsinfo lsbackup -filtervalue "jobclass=snapshot&appid=18405"
+```
+To list the above in a table format
+```
+udsinfo lsbackup -filtervalue "jobclass=snapshot&appid=18405" | format-table
+```
+If you need help with a command, use the -? option:
+```
+Get-LastSnap -?
+```
+To find out the latest snapshot image for appid 18405:
+```
+Get-LastSnap -app 18405 -jobclass snapshot
+```
+To get a list of available SARG reports, run either reportlist or get-sargreport reportlist
+To list of available storage pools on the Actifio appliance, run the reportpools command:
+```
+reportpools 
+```
+Run the SARG reportimages command:
+```
+get-sargreport reportimages -a 0 | select jobclass, hostname, appname | format-table
+```
+To export to CSV we use the powershell export-csv option and then specify the path.   In this example you can see the path and filename that was used.
+```
+reportsnaps | export-csv -path c:\Users\av\Documents\reportsnaps.csv
+```
+To learn the latest snapshot date for each application we could do this:
+```
+ reportrpo | select hostname, appname, snapshotdate
+```
+To learn the latest snapshot date for each VM we could do this:
+```
+reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
+```
+
+
+
