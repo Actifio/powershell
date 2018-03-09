@@ -48,6 +48,6 @@ get-sargreport reportlist
 reportpools 
 get-sargreport reportimages -a 0 | select jobclass, hostname, appname | format-table
 reportsnaps | export-csv -path C:\Users\av\Documents\reportsnaps.csv
-reportrpo | select hostname, appname, snapshotdate
+reportrpo | select apptype, hostname, appname, snapshotdate
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
