@@ -47,7 +47,7 @@ Import the module into the Powershell session by running:
 ```
 Import-module ActPowerCLI
 ```
-If you are running Powershell version 5 then extra steps to enable script command execution will be needed if you get an error like this:
+If you are running Powershell version 5 then extra steps will be needed if you get an error like this:
 ```
 PS C:\Users\av> connect-act
 connect-act : The 'connect-act' command was found in the module 'ActPowerCLI', but the module could not be loaded. For
@@ -63,7 +63,7 @@ If you get this error we will need to modify the downloaded zip file and copy th
 1. Delete the actpowercli folder in c:\windows\system32\windowspowershell\v1.0\modules  or where ever you placed it
 1. Right select the downloaded zip file and choose properties
 1. At the bottom of the properties window select the Unblock button next to the message: *This file came from another computer and might be blocked to help protect this computer*
-1. Unzip and again copy the foler into c:\windows\system32\windowspowershell\v1.0\modules or which ever path you are using
+1. Unzip and again copy the folder into c:\windows\system32\windowspowershell\v1.0\modules or which ever path you are using
 
 
 ### 6)  Find out the current version of ActPowerCLI:
