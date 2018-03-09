@@ -173,7 +173,7 @@ reportsnaps | export-csv -path c:\Users\av\Documents\reportsnaps.csv
 ```
 To learn the latest snapshot date for each application we could do this:
 ```
- reportrpo | select hostname, appname, snapshotdate
+reportrpo | select apptype, hostname, appname, snapshotdate
 ```
 To learn the latest snapshot date for each VM we could do this:
 ```
