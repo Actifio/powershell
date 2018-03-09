@@ -158,8 +158,12 @@ To find out the latest snapshot image for appid 18405:
 ```
 Get-LastSnap -app 18405 -jobclass snapshot
 ```
-To get a list of available SARG reports, run either reportlist or get-sargreport reportlist
-To list of available storage pools on the Actifio appliance, run the reportpools command:
+To get a list of available SARG reports, run either:
+```
+reportlist 
+get-sargreport reportlist
+```
+To list all available storage pools on the Actifio appliance, run the reportpools command:
 ```
 reportpools 
 ```
