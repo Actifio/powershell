@@ -3,7 +3,7 @@
 
 ### 1)   Ensure PowerShell 3.0 and .NET are installed.
 
-Ensure that PowerShell 3.0 is installed on the target workstation.
+Ensure that PowerShell 3.0 or above is installed on the target workstation.
 For Windows 7 SP1 and Windows 2008 R2, Powershell 3.0 should already be installed. 
 We also need .NET 4.0 installed on the OS. To find out the Powershell version, start Powershell and then enter the version command as shown:  
 ```
@@ -16,6 +16,9 @@ To find out the current version of .NET Framework, enter the following in PowerS
 ```
 $PSVersionTable.CLRVersion 
 ```
+#### Mac and Linux OS Powershell
+
+This Powershell library has been successfully tested on Mac OS 10.12.   Only one issue was found, which is that the password cannot be saved in an encrypted file, as this process relies on a .NET DLL (crypt32.dll).   At this time the only work around for stored scripts is to use -password rather than -passwordfile.
 
 ### 2)   Confirm if actpowercli is already installed
 
