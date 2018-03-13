@@ -28,8 +28,8 @@ Save-ActPassword -filename "C:\Users\av\Documents\password.key"
 
 ## Login
 ```
-Connect-Act 172.24.1.180 av
-Connect-Act 172.24.1.180 -actuser av -passwordfile "C:\Users\av\Documents\password.key"
+Connect-Act 172.24.1.180 av -ignorecerts
+Connect-Act 172.24.1.180 -actuser av -passwordfile "C:\Users\av\Documents\password.key" -ignorecerts
 ```
 
 ## Example commands
