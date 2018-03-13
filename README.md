@@ -128,11 +128,11 @@ Save-ActPassword -filename "C:\temp\password.key"
 
 To login to an Actifio appliance (10.61.5.114) as admin and enter password interactvely:
 ```
-Connect-Act 10.61.5.114 admin
+Connect-Act 10.61.5.114 admin -ignorecerts
 ```
 Or login to the Actifio cluster using the password file created in the previous step:
 ```
-Connect-Act 10.61.5.114 -actuser admin -passwordfile "c:\temp\password.key"
+Connect-Act 10.61.5.114 -actuser admin -passwordfile "c:\temp\password.key" -ignorecerts
 ```
 You will need to store the certificate during first login.
 
