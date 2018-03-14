@@ -8,7 +8,6 @@ $mailbody += "<body> `n"
 $mailbody += "<pre style=font: monospace> `n"
 $mailbody += "Report created on $currentdate `n"
 $mailbody += "############################################################################# `n"
-$addresses = Get-content "iplist.txt"
 foreach ($item in $data){
   if (!$keyfile) { Connect-Act -acthost $item.ApplianceIP -actuser $user -password $password -ignorecerts }
   if (!$password) { Connect-Act -acthost $item.ApplianceIP -actuser $user -passwordfile $keyfile -ignorecerts }
