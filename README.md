@@ -1,7 +1,7 @@
 # actpowercli
 
 
-### 1)   Ensure PowerShell 3.0 and .NET are installed.
+### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
 
 Ensure that PowerShell 3.0 or above is installed on the target workstation.
 For Windows 7 SP1 and Windows 2008 R2, Powershell 3.0 should already be installed. 
