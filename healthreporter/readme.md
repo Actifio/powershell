@@ -19,9 +19,10 @@ You can create multiple files like this and you reference the name of the applia
 
 ### Configuration of config.ps1
 Edit config.ps1 with all variables needed.  You can create multiple config files, just give each one a different name.
+Note that unlike the email reporter, no command is needed as the command is already embedded in healthreporter.ps1
 
 ### Execute!
 To run, simply use syntax like this:
 ```
-./mail.ps1 -configfile .\config.ps1
+./healthreporter.ps1 -configfile .\config.ps1
 ```
