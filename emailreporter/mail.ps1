@@ -1,5 +1,17 @@
-####   This script should not require any changes unless you want to change email formatting
-param([string]$configfile = "configfile")
+# 
+## File: mail.ps1
+## Purpose: Emails output of command defined in config.ps1 for a list of appliances
+## This script should not require any changes unless you want to change email formatting
+#
+
+param([string]$configfile = $null)
+
+if (! $configfile) {
+    write-host "Usage: .\mail.ps1 -configfile [ full pathname of the config file ]"
+    write-host "Example: .\mail.ps1 -configfile c:\actifio\config.ps1"
+    break
+}
+
 . ./$configfile
 $currentdate = (get-date (get-date) -UFormat "%Y-%m-%d %H:%M:%S")
 $data = Import-Csv -Path $appliancelist -Header "ApplianceName","ApplianceIP" -Delimiter ","
