@@ -1,4 +1,4 @@
-# Actifio Powershell integration using the actpowercli module
+# Actifio Powershell integration
 
 
 ### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
@@ -20,7 +20,7 @@ $PSVersionTable.CLRVersion
 
 This Powershell module has been successfully tested on Mac OS 10.12.   Only one issue was found, which is that the password cannot be saved in an encrypted file, as this process relies on a .NET DLL (crypt32.dll).   At this time the only work around for stored scripts is to use -password rather than -passwordfile.
 
-### 2)   Confirm if actpowercli is already installed
+### 2)   Confirm if the actpowercli module is already installed
 
 To get a list of available modules to the current PowerShell:
 ```
