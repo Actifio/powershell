@@ -1,11 +1,11 @@
-# Actifio Powershell integration
+# Actifio PowerShell integration
 
 
 ### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
 
 Ensure that PowerShell 3.0 or above is installed on the target workstation.
-For Windows 7 SP1 and Windows 2008 R2, Powershell 3.0 should already be installed. 
-We also need .NET 4.0 installed on the OS. To find out the Powershell version, start Powershell and then enter the version command as shown:  
+For Windows 7 SP1 and Windows 2008 R2, PowerShell 3.0 should already be installed. 
+We also need .NET 4.0 installed on the OS. To find out the PowerShell version, start PowerShell and then enter the version command as shown:  
 ```
 powershell
 $host.version 
@@ -16,9 +16,9 @@ To find out the current version of .NET Framework, enter the following in PowerS
 ```
 $PSVersionTable.CLRVersion 
 ```
-#### Mac and Linux OS Powershell
+#### Mac and Linux OS PowerShell
 
-This Powershell module has been successfully tested on Mac OS 10.12.   Only one issue was found, which is that the password cannot be saved in an encrypted file, as this process relies on a .NET DLL (crypt32.dll).   At this time the only work around for stored scripts is to use -password rather than -passwordfile.
+This PowerShell module has been successfully tested on Mac OS 10.12.   Only one issue was found, which is that the password cannot be saved in an encrypted file, as this process relies on a .NET DLL (crypt32.dll).   At this time the only work around for stored scripts is to use -password rather than -passwordfile.
 
 ### 2)   Confirm if the actpowercli module is already installed
 
@@ -46,11 +46,11 @@ c:\windows\system32\windowspowershell\v1.0\modules
 
 ### 5)  Import actpowercli
 
-Import the module into the Powershell session by running:
+Import the module into the PowerShell session by running:
 ```
 Import-module ActPowerCLI
 ```
-If you are running Powershell version 5 then extra steps will be needed if you get an error like this:
+If you are running PowerShell version 5 then extra steps will be needed if you get an error like this:
 ```
 PS C:\Users\av> connect-act
 connect-act : The 'connect-act' command was found in the module 'ActPowerCLI', but the module could not be loaded. For
@@ -115,7 +115,7 @@ Get-Help Connect-Act -examples
 ### 8)  Save your password
 Following are three different methods of storing a credential in a file:
 
-a)  Create an encrypted password file using the Powershell Get-Credential cmdlet:
+a)  Create an encrypted password file using the PowerShell Get-Credential cmdlet:
 ```
 (Get-Credential).Password | ConvertFrom-SecureString | Out-File "C:\temp\password.key"
 ```
@@ -198,7 +198,7 @@ Run the SARG reportimages command:
 ```
 get-sargreport reportimages -a 0 | select jobclass, hostname, appname | format-table
 ```
-To export to CSV we use the powershell export-csv option and then specify the path.   In this example you can see the path and filename that was used.
+To export to CSV we use the PowerShell export-csv option and then specify the path.   In this example you can see the path and filename that was used.
 ```
 reportsnaps | export-csv -path c:\Users\av\Documents\reportsnaps.csv
 ```
