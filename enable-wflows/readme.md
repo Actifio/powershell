@@ -23,3 +23,13 @@ To run, simply use syntax like this:
 ```
 ./enable-wflows.ps1 -paramfile .\actparams.ps1
 ```
+### Sample Output:
+```
+./enable-wflows.ps1 .\actparams.ps1                                                                                                                  
+Connected to 172.24.16.192
+Enabling workflow id ( 315394 ) for workflow_test
+udstask chworkflow -disable false 315394
+Enabling workflow id ( 306666 ) for vstar
+udstask chworkflow -disable false 306666
+Success!
+```
