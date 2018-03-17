@@ -1,8 +1,15 @@
+# 
+## File: actparams.ps1
+## Purpose: Sets the parameters required for the main PowerShell script
+#
+
 #  This is the user we will connect to the Applance with.   
 [string] $user = "admin"
 
-# we need to choose only one access method.  Use a hash to block out the one you dont use.   
+# we need to choose only one access method.  Use a hash to block out the one you dont use
+# Manually enter plaintext password
 [string] $password = "passw0rd"
+# unhash this line and set path to the password file
 # [string] $passwordfile = "./keyfile.key"
 
 #  this variable defines a second file where we store the names of the appliances we are going to interact with
