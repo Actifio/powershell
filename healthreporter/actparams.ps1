@@ -1,3 +1,8 @@
+# 
+## File: actparams.ps1
+## Purpose: Sets the parameters required for the main PowerShell script
+#
+
 #  This is the user we will connect to the Applance with.   
 [string] $user = "admin"
 
