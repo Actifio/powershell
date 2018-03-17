@@ -59,8 +59,9 @@ $mailbody += "<pre style=font: monospace> `n"
 $mailbody += "Report created on $currentdate `n"
 $mailbody += "#################################### `n"
 $mailbody += Write-Output "$total Appliances were checked and $clean Clean Appliances were found.  Appliances with messages are displayed below: `n"
-$mailbody += "-------------------------------------------------------------------------------- `n"
-$mailbody += $badoutput
+if ($badoutput) { $mailbody += "-------------------------------------------------------------------------------- `n"
+    $mailbody += $badoutput
+}
 $mailbody += "`n"
 $mailbody += "-------------------------------------------------------------------------------- `n"
 $mailbody += "The following Appliances were clean: `n"
