@@ -31,6 +31,10 @@ $mailbody += "##################################################################
 
 #  this loop logs into each appliance using either plain text password or password key file and then run the defined command
 foreach ($item in $data){
+  if (!$item.ApplianceIP) { 
+    write-host "The appliancelist is not formatted correctly, there is a blank IP address"
+    continue
+  }
   if (!$keyfile) { Connect-Act -acthost $item.ApplianceIP -actuser $user -password $password -ignorecerts }
   if (!$password) { Connect-Act -acthost $item.ApplianceIP -actuser $user -passwordfile $keyfile -ignorecerts }
   $mailbody += "Appliance:  "
