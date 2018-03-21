@@ -127,6 +127,14 @@ c)	Create an encrypted password file using the ActPowerCLI Save-ActPassword cmdl
 ```
 Save-ActPassword -filename "C:\temp\password.key"
 ```
+##### Sharing key files
+
+Currently if a key file is created by a specific user, it cannot be used by a different user.    You will see an error like this:
+```
+Key not valid for use in specified state.
+```
+This will cause issues when running saved scripts when two differerent users want to run the same script with the same keyfile.    To work around this issue, please have each user create a keyfile for their own use.   Then when running a shared script, each user should execute the script specifying their own keyfile.  This can be done by using a parameter file for each script.
+
 ### 9)  Login to your appliance
 
 To login to an Actifio appliance (10.61.5.114) as admin and enter password interactvely:
