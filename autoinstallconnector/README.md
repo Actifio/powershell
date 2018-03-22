@@ -12,5 +12,5 @@ powershell -noprofile -executionpolicy bypass -file autoinstallconnector.ps1 -Ac
 Or, if you prefer to run it interactively from the command line:
 ```
 powershell -noprofile -executionpolicy bypass -file autoinstallconnector.ps1 
-Please enter the Actifio IP address : **10.65.5.192**
+Please enter the Actifio IP address : 10.65.5.192
 ```
