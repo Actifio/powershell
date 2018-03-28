@@ -218,6 +218,9 @@ To learn the latest snapshot date for each VM we could do this:
 ```
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
-
-
+### 11)  Disconnect from your appliance
+Once you are finished, make sure to disconnect (logout).   If you are running many scripts in quick succession, each script should connect and then disconnect, otherwise each session will be left open to time-out on its own.
+```
+Disconnect-Act
+```
 
