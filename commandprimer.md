@@ -51,3 +51,7 @@ reportsnaps | export-csv -path C:\Users\av\Documents\reportsnaps.csv
 reportrpo | select apptype, hostname, appname, snapshotdate
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
+## Logout
+```
+Disconnect-Act
+```
