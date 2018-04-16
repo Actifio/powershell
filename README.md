@@ -1,6 +1,8 @@
 # Actifio PowerShell integration
 
 
+These instructions are for a PowerShell Module that is used to manage Actifio Appliances
+
 ### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
 
 Ensure that PowerShell 3.0 or above is installed on the target workstation.
