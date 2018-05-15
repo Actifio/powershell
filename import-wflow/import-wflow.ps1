@@ -10,14 +10,6 @@
 
 param ( [string]$ssvfile = "input.csv",[switch]$help, [switch]$confirm)
 
-if (Test-Path $ssvfile) {
-    $csv = Import-Csv $csvfile -delimiter ";"
-} else {
-    write-output "Unable to open SSV file - $ssvfile"
-    write-output "Use -ssvfile to specify the name of the CSV file"
-    exit 1
-}
-
 if ($help) {
   $helpstring = @"
     NAME
@@ -36,6 +28,13 @@ if ($help) {
     break  # Exits the function early
     }
 
+if (Test-Path $ssvfile) {
+    $csv = Import-Csv $csvfile -delimiter ";"
+} else {
+    write-output "Unable to open SSV file - $ssvfile"
+    write-output "Use -ssvfile to specify the name of the CSV file"
+    exit 1
+}
 
 # ----------------------------------------------------------------
 ## Adds an Oracle workflow
