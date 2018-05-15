@@ -29,7 +29,7 @@ if ($help) {
     }
 
 if (Test-Path $ssvfile) {
-    $csv = Import-Csv $csvfile -delimiter ";"
+    $csv = Import-Csv $ssvfile -delimiter ";"
 } else {
     write-output "Unable to open SSV file - $ssvfile"
     write-output "Use -ssvfile to specify the name of the CSV file"
