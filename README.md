@@ -220,6 +220,14 @@ To learn the latest snapshot date for each VM we could do this:
 ```
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
+udsinfo lshost provides us with high level information on a host. To find out the detail information on each host:
+```
+udsinfo lshost | select id | foreach-object { udsinfo lshost $_.id } | select svcname, hostname, id, iscsi_name, ipaddress
+```
+To list out all the workflow configurations on an appliance, use a combination of reportworkflows and udsinfo lsworkflow:
+```
+reportworkflows | select id | foreach-object {udsinfo lsworkflow $_.id}
+```
 #### Avoiding white space and multiple lines in array output
 A common requirement is that you may want to get the latest image name for an application, but the command returns white space and/or multiple lines.   In this example the output not only has multiple image names, but white space.  This could result in errors when trying to use this image name in other commands like udstask mountimage
 ```
