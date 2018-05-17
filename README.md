@@ -220,8 +220,8 @@ To learn the latest snapshot date for each VM we could do this:
 ```
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
-##### Avoiding white space and multiple lines in array output
-A common issue is that you may want to get the latest image name for an application, but the command returns white space and/or multiple lines.   In this example the output not only has multiple image names, but white space:
+#### Avoiding white space and multiple lines in array output
+A common requirement is that you may want to get the latest image name for an application, but the command returns white space and/or multiple lines.   In this example the output not only has multiple image names, but white space.  This could result in errors when trying to use this image name in other commands like udstask mountimage
 ```
 PS C:\Users\av> $imagename = udsinfo lsbackup -filtervalue "backupdate since 124 hours&appname=SQL-Masking-Prod&jobclass=snapshot" | where {$_.componenttype -eq "0"} | select backupname | ft -HideTableHeaders
 PS C:\Users\av> $imagename
