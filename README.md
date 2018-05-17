@@ -220,6 +220,27 @@ To learn the latest snapshot date for each VM we could do this:
 ```
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
 ```
+##### Avoiding white space and multiple lines in array output
+A common issue is that you may want to get the latest image name for an application, but the command returns white space and/or multiple lines.   In this example the output not only has multiple image names, but white space:
+```
+PS C:\Users\av> $imagename = udsinfo lsbackup -filtervalue "backupdate since 124 hours&appname=SQL-Masking-Prod&jobclass=snapshot" | where {$_.componenttype -eq "0"} | select backupname | ft -HideTableHeaders
+PS C:\Users\av> $imagename
+
+Image_4393067
+Image_4410647
+Image_4426735
+
+
+PS C:\Users\av>
+```
+If we use a slightly different syntax, we can guarantee both no white space and only one image name:
+```
+PS C:\Users\av> $imagename =  $(udsinfo lsbackup -filtervalue "backupdate since 124 hours&appname=SQL-Masking-Prod&jobclass=snapshot" | where {$_.componenttype -eq "0"} | select -last 1 ).backupname
+PS C:\Users\av> $imagename
+Image_4426735
+PS C:\Users\av>
+```
+
 ### 11)  Disconnect from your appliance
 Once you are finished, make sure to disconnect (logout).   If you are running many scripts in quick succession, each script should connect and then disconnect, otherwise each session will be left open to time-out on its own.
 ```
