@@ -1,4 +1,4 @@
-# 
+e# 
 ## File: actparams.ps1
 ## Purpose: Sets the parameters required for the main PowerShell script
 #
@@ -10,7 +10,7 @@
 # Manually enter plaintext password
 [string] $password = "passw0rd"
 # unhash this line and set path to the password file
-# [string] $passwordfile = "./keyfile.key"
+# [string] $keyfile = "./keyfile.key"
 
 #  this variable defines a second file where we store the names of the appliances we are going to interact with
 # The file needs to contain one line for each appliance in the format:    appliancename,applianceip
