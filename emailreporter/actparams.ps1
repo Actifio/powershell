@@ -1,4 +1,4 @@
-e# 
+# 
 ## File: actparams.ps1
 ## Purpose: Sets the parameters required for the main PowerShell script
 #
