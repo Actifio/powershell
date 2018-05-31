@@ -2,6 +2,8 @@
 
 This is a powershell script that will login to a list of Actifo Appliances, run the same command on each one and then send a post to Slack.    You could automate this with a scheduler to get a regular post containing useful information.
 
+Note this was written using PowerShell Version 6 to get around SSL errors seen during testing.
+
 ## How does this work?
 
 There are three files needed for this to work.
