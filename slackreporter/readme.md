@@ -20,7 +20,7 @@ appliance2,172.1.1.2
 You can create multiple files like this and you reference the name of the appliance list in the config file.
 
 ### Configuration of slackparams.ps1
-Edit slackparams.ps1 with all variables needed.  You can create multiple config files, just give each one a different name.
+Edit slackparams.ps1 with all variables needed.  You can create multiple param files, just give each one a different name.
 
 ### Execute!
 To run, simply use syntax like this:
