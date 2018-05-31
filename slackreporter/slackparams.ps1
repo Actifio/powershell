@@ -38,7 +38,7 @@ $Username = "Actifio Bot"
 $Channel = "#testme" 
 
 #  emoji to use
-# $Emoji = ":amazon:" 
+ $Emoji = ":rocket:" 
 
 #  Icon to use
 # $IconUrl =
