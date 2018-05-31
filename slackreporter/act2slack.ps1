@@ -35,7 +35,9 @@ foreach ($item in $data){
   $report += $item.ApplianceName 
   $report += " on $currentdate `n"
   $report += "-------------------------------------------- `n"
+  $report += '```'
   $report += Invoke-Expression $command | format-table | out-string
+  $report += '```'
     
   $body = @{ text=$report; channel=$Channel; username=$Username; icon_emoji=$Emoji; icon_url=$IconUrl } | ConvertTo-Json
   Invoke-WebRequest -Method Post -SslProtocol 'Tls11, Tls12' -Uri $Url -Body $body
