@@ -25,3 +25,6 @@ To run, simply use syntax like this:
 ```
 ./_act2slack.ps1 -paramfile .\slackparams.ps1
 ```
+Example output:
+
+![alt text](https://github.com/Actifio/powershell/blob/master/slackreporter/screencap.jpg)
