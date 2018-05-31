@@ -27,4 +27,4 @@ To run, simply use syntax like this:
 ```
 Example output:
 
-![alt text](https://github.com/Actifio/powershell/blob/master/slackreporter/screencap.jpg)
+![alt text](https://github.com/Actifio/powershell/blob/master/slackreporter/images/screencap1.jpg)
