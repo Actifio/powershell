@@ -5,7 +5,7 @@ These instructions are for a PowerShell Module that is used to manage Actifio Ap
 
 ### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
 
-Ensure that PowerShell 3.0 or above is installed on the target workstation.
+Ensure that Windows PowerShell 3.0 to 5.1 or above is installed on the target workstation.
 For Windows 7 SP1 and Windows 2008 R2, PowerShell 3.0 should already be installed. 
 We also need .NET 4.0 installed on the OS. To find out the PowerShell version, start PowerShell and then enter the version command as shown:  
 ```
@@ -18,9 +18,10 @@ To find out the current version of .NET Framework, enter the following in PowerS
 ```
 $PSVersionTable.CLRVersion 
 ```
-#### Mac and Linux OS PowerShell
+#### PowerShell version 6
 
-This PowerShell module has been successfully tested on Mac OS 10.12.   Only one issue was found, which is that the password cannot be saved in an encrypted file, as this process relies on a .NET DLL (crypt32.dll).   At this time the only work around for stored scripts is to use -password rather than -passwordfile.
+Issues have been seen running PowerShell (as opposed to Windows PowerShell) verson 6.0.  
+At this time we support Windows PowerShell 3.0 to 5.1
 
 ### 2)   Confirm if the actpowercli module is already installed
 
