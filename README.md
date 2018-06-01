@@ -12,7 +12,7 @@ We also need .NET 4.0 installed on the OS. To find out the PowerShell version, s
 powershell
 $host.version 
  ```
-If you are downlevel, installing the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.
+If you are downlevel, installing the Windows Management Framework 3.0 (https://www.microsoft.com/en-us/download/details.aspx?id=34595) will upgrade your PowerShell software to version 3.0.    You should consider upgrading to 5.1 (https://www.microsoft.com/en-us/download/details.aspx?id=54616)
 
 To find out the current version of .NET Framework, enter the following in PowerShell:
 ```
@@ -20,7 +20,7 @@ $PSVersionTable.CLRVersion
 ```
 #### PowerShell version 6
 
-Issues have been seen running PowerShell (as opposed to Windows PowerShell) verson 6.0.  
+Issues have been seen running PowerShell (as opposed to Windows PowerShell) version 6.0.  
 At this time we support Windows PowerShell 3.0 to 5.1
 
 ### 2)   Confirm if the actpowercli module is already installed
