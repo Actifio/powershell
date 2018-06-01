@@ -1,7 +1,7 @@
 
 ## Check your versions 
 ```
-$host.version        (need version 3.0 or above)
+$host.version        (need version 3.0 to 5.1)
 $PSVersionTable.CLRVersion       (need .NET 4.0 or above)
 ```
 ## Check your plugins
