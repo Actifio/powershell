@@ -30,6 +30,8 @@ Save-ActPassword -filename "C:\Users\av\Documents\password.key"
 ```
 Connect-Act 172.24.1.180 av -ignorecerts
 Connect-Act 172.24.1.180 -actuser av -passwordfile "C:\Users\av\Documents\password.key" -ignorecerts
+Connect-Act 172.24.1.180 -actuser av -password passw0rd -ignorecerts 
+Connect-Act 172.24.1.180 -actuser av -password passw0rd -ignorecerts -quiet
 ```
 
 ## Example commands
@@ -50,8 +52,10 @@ get-sargreport reportimages -a 0 | select jobclass, hostname, appname | format-t
 reportsnaps | export-csv -path C:\Users\av\Documents\reportsnaps.csv
 reportrpo | select apptype, hostname, appname, snapshotdate
 reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate
+reportmountedimages | where {$_.Label -eq "$Name"} | foreach { $_.MountedHost }
 ```
 ## Logout
 ```
 Disconnect-Act
+Disconnect-Act -quiet
 ```
