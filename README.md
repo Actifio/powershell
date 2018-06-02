@@ -148,7 +148,9 @@ Or login to the Actifio cluster using the password file created in the previous 
 ```
 Connect-Act 10.61.5.114 -actuser admin -passwordfile "c:\temp\password.key" -ignorecerts
 ```
-You will need to store the certificate during first login.
+You will need to store the certificate during first login if you don't use **-ignorecerts**
+
+Note you can use **-quiet** to supress messages.   This is handy when scripting.
 
 ### 10) Example commands
 
