@@ -28,8 +28,14 @@ foreach ($item in $data){
     write-host "The appliancelist is not formatted correctly, there is a blank IP address"
     continue
   }	
-  if (!$keyfile) { Connect-Act -acthost $item.ApplianceIP -actuser $user -password $password -ignorecerts }
-  if (!$password) { Connect-Act -acthost $item.ApplianceIP -actuser $user -passwordfile $keyfile -ignorecerts }
+  if (!$keyfile) { $connectattempt=$(Connect-Act -acthost $item.ApplianceIP -actuser $user -password $password -ignorecerts) }
+  if (!$password) { $connectattempt=$(Connect-Act -acthost $item.ApplianceIP -actuser $user -passwordfile $keyfile -ignorecerts) }
+    
+  if ($connectattempt -ne "Login Successful!") {
+	write-host "Failed to login to $item with username $user"
+	exit
+  }
+
 
   $report = "$reportname from:  "
   $report += $item.ApplianceName 
