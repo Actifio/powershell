@@ -60,18 +60,16 @@ while (-not $Completed) {
 $job_check = $false
 $job_check = $(udsinfo lsjobhistory $jobname).message
 if ($job_check) {
-		$job_history = $(udsinfo lsjobhistory $jobname)
-		$job_message = $job_history.message
-		$job_start = $job_history.startdate
-		$job_end = $job_history.enddate
-		$ts = [datetime]$job_end -[datetime]$job_start
-		# $duration = $(New-TimeSpan -Start $job_start -End $job_end)
-		$timestamp = $(get-date (get-date) -UFormat "%Y-%m-%d %H:%M:%S")
-    # write-host "$timestamp   $jobname ended after $($ts) (HH:MM:SS) with this message: $job_message"
-    [console]::WriteLine("$timestamp   $jobname ended after this duration (hh:mm:ss.ff): {0:g}", $ts)
-    write-host "$timestamp   $jobname ended with this message: $job_message"
-    Disconnect-Act -quiet
-    }  else {
-		write-host "$(get-date (get-date) -UFormat "%Y-%m-%d %H:%M:%S")   $jobname cannot be found as a running or completed job"
-		Disconnect-Act -quiet
+	$job_history = $(udsinfo lsjobhistory $jobname)
+	$job_message = $job_history.message
+	$job_start = $job_history.startdate
+	$job_end = $job_history.enddate
+	$ts = [datetime]$job_end -[datetime]$job_start
+	$timestamp = $(get-date (get-date) -UFormat "%Y-%m-%d %H:%M:%S")
+    	[console]::WriteLine("$timestamp   $jobname ended after this duration (hh:mm:ss.ff): {0:g}", $ts)
+    	write-host "$timestamp   $jobname ended with this message: $job_message"
+    	Disconnect-Act -quiet
+    	}  else {
+	write-host "$(get-date (get-date) -UFormat "%Y-%m-%d %H:%M:%S")   $jobname cannot be found as a running or completed job"
+	Disconnect-Act -quiet
 }
