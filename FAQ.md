@@ -8,3 +8,4 @@ cd /d "C:\Program Files\Actifio\scripts"
 
 start /wait powershell -ExecutionPolicy Bypass "& .\postmountactions.ps1"
 ```
+You can find a working example here:   https://github.com/Actifio/powershell/tree/master/workflow_email_notifications
