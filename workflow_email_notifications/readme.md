@@ -17,9 +17,9 @@ mail.bat <destination email address> <mail server> <from email address>
 ```
 For instance:
 ```
-mail.bat anthonyv@acme.com smtp.acme.com mgmt4@acme.com
+mail.bat av@acme.com smtp.acme m4@acme.com
 ```
-This will send an email to anthonyv@acme.com using mail server smtp.acme.com with a from address of mgmt4@acme.com.
+This will send an email to av@acme.com using mail server smtp.acme with a from address of m4@acme.com.
 
 ![alt text](https://github.com/Actifio/powershell/blob/master/workflow_email_notifications/images/Workflow_three_parm.jpg)
 
