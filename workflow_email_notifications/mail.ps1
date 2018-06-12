@@ -2,13 +2,32 @@
 ## File: workflowmailer.ps1
 ## Purpose: sends an email while a workflow is running
 
-# these three values need to match your environment.
-$mailserver = "smtp.actifio.com"
-$dest = "anthonyv@actifio.com"
-$fromaddr = "mgmt4@actifio.com"
+param([string]$destemail = $null,[string]$mailserver = $null,[string]$fromaddr = $null)
+
+#  This is here in case we need to log
+# $VerbosePreference = "Continue"
+# $LogPath = "C:\program files\actifio\scripts\ps.log"
+# Start-Transcript $LogPath -Append
+
+# these parms are all supplied
+# $mailserver = "smtp.acme.com"
+# $dest = "anthonyv@acme.com"
+# $fromaddr = "mgmt4@acme.com"
 
 
-#  You shouldn't need to customize from here down:
+# Write-Verbose "$(Get-Date): We test parms."
+
+if (! $destemail) {
+    exit
+}
+if (! $mailserver) {
+    exit
+}
+if (! $fromaddr) {
+    exit
+}
+
+# Write-Verbose "$(Get-Date): We test for logsmart."
 
 # if this is a log smart mount or unmount dont report it
 if (Test-Path Env:ACT_LOGSMART_TYPE) { 
@@ -17,7 +36,6 @@ if (Test-Path Env:ACT_LOGSMART_TYPE) {
 	}
 }
 
-# this is the function to send mail that gets called
 function Sendmail{
 $mailbody = "<html> `n"
 $mailbody += "<body> `n"
@@ -33,7 +51,7 @@ $mailbody += "</pre> `n"
 $mailbody += "</body> `n"
 $mailbody += "</html> `n"
 # we now mail out the file
-Send-MailMessage -From $fromaddr -To $dest -Body $mailbody -SMTP $mailserver -subject $subject -BodyAsHtml 
+Send-MailMessage -From $fromaddr -To $destemail -Body $mailbody -SMTP $mailserver -subject $subject -BodyAsHtml 
 }
 
 $jobname = $(Get-Item Env:ACT_JOBNAME).Value
@@ -55,3 +73,6 @@ if (( $(Get-Item Env:ACT_MULTI_OPNAME).Value -eq "mount" ) -and ( $(Get-Item Env
 	[string] $subject = "Mount $jobname was run by workflow on $targethost"
 	Sendmail
 }
+
+
+# Stop-Transcript
