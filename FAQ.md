@@ -76,3 +76,93 @@ Browse to Local Computer Policy -> Computer Configuration -> Administrative Temp
 Enable "Turn on Script Execution"
 Set the policy to "Allow all scripts".
 ```
+### I am getting this error message with PowerShell 6:  *An error occurred while sending the request*
+
+PowerShell from version 6 changed from *Windows PowerShell* to just *PowerShell* to reflect that it can now run on Linux and Mac OS.   The commands used for SSL have changed which will require some changes to the Actifio PowerShell Module.   You may see this error:  
+
+```
+Connect-ActAppliance : One or more errors occurred. (An error occurred while sending the request.)
+At C:\program files\powershell\6-preview\Modules\ActPowerCLI\ActPowerCLI.psm1:192 char:3
++         Connect-ActAppliance -cdshost $acthost -cdsuser $actuser -Pas ...
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ CategoryInfo          : NotSpecified: (:) [Connect-ActAppliance], AggregateException
++ FullyQualifiedErrorId : System.AggregateException,ActPowerCLI.ConnectActAppliance
+```
+Firstly if you have Windows PowerShell 3.0 to 5.1, use that to install the Actifio Appliance Certificate as a Trusted Root Certificate as per the example shown.  Note the Subject name, in this example *sa-sky*
+```
+PS C:\Users\avandewerdt> connect-act 172.24.1.180
+The SSL certificate from https://172.24.1.180 is not trusted. Please choose one of the following options
+(I)gnore & continue
+(A)ccept & install certificate
+(C)ancel
+Please select an option: a
+Certificate details
+Issuer:  CN=sa-sky, OU=Demo, O=Actifio, L=Waltham, S=Mass, C=US
+Subject:  CN=sa-sky, OU=Demo, O=Actifio, L=Waltham, S=Mass, C=US
+Effective:  12/13/2017 2:25:49 PM
+Expiration:  12/11/2027 2:25:49 PM
+This certificate will be installed into the Trusted Root Certication Authorities store
+Please choose the location where the certificate should be installed
+[M] LocalMachine
+[U] CurrentUser
+Choose location: u
+Certificate added successfully and will be used in the next session.
+Actifio user: av
+Password: **********
+Login Successful!
+PS C:\Users\avandewerdt>
+```
+Once the certificate is installed using Windows PowerShell, you can now use PowerShell 6, but always use the correct Subject name.  In the example above it was *sa-sky* so logging in as *172.24.1.180* will not work.
+```
+PS C:\Program Files\PowerShell\6-preview> connect-act sa-sky
+Actifio user: av
+Password: **********
+Login Successful!
+PS C:\Program Files\PowerShell\6-preview> connect-act 172.24.1.180
+Actifio user: av
+Password: **********
+Connect-ActAppliance : One or more errors occurred. (An error occurred while sending the request.)
+At C:\program files\powershell\6-preview\Modules\ActPowerCLI\ActPowerCLI.psm1:192 char:3
+```
+
+#### Using the Actifio Desktop to import the Certificate
+
+If you don't have access to PowerShell 3 to 5, then we could import the Certificate using the Actifio Desktop if it is installed.   Open the Actifio Desktop and logon to the Appliance, you should get a Security Alert.   Choose the option to *View Certificate*.   Note if you don't get this prompt, your certificate is already trusted.
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-03-23.jpg)
+
+Carefully note the _Issued to:_  section.   This contains the name or IP you need to connect to.   Select *Install Certficate*
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-03-44.jpg)
+
+Choose *Local Machine* and select Next.  You will get a security popup.
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-05-05.jpg)
+
+Browse and select *Trusted Root Certification Authorities*.   Select Next and follow the prompts.
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-05-34.jpg)
+
+Now next time you login with the Actifio Desktop provided you point at the name or IP that the certificate was issued to, you can login.  In my example it was *172.24.2.180*
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-20-18.jpg)
+
+#### Importing or viewing the certificates on your Windows host:
+
+1. Open a Command Prompt window.
+1. Type mmc and press the ENTER key. Note that to view certificates in the local machine store, you must be in the Administrator role.
+1. On the File menu, click Add/Remove Snap In.
+1. Click Add.
+1. In the Add Standalone Snap-in dialog box, select Certificates.
+1. Click Add.
+1. In the Certificates snap-in dialog box, select Computer account and click Next. Optionally, you can select My User account or Service account. If you are not an administrator of the computer, you can manage certificates only for your user account.
+1. In the Select Computer dialog box, click Finish.
+1. In the Add Standalone Snap-in dialog box, click Close.
+1. On the Add/Remove Snap-in dialog box, click OK.
+1. In the Console Root window, click Certificates (Local Computer) to view the certificate stores for the computer.
+
+In this example you can the trusted certificate that was added:
+
+![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-23-38.jpg)
+
+If we export the certificate using a webbrowser, we could import using the Certificates snapin.
