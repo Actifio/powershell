@@ -46,6 +46,7 @@ Get-ChildItem Env:\PSModulePath | format-list
 ```
 c:\windows\system32\windowspowershell\v1.0\modules 
 ```
+Note!   If PowerShell is installed as a 32 bit application, then use the path in this folder: C:\program files (x86)
 
 ### 5)  Import actpowercli
 
