@@ -1,4 +1,4 @@
-### Can I specify a powershell (PS1) script in a workflow?
+### Can I specify a powershell (PS1) script in an Actifio Workflow?
 
 Actifio workflows allow you to specify a pre and post script.   For Windows these scripts need to be in either .CMD or .BAT format and have relevant extension.   In other words, these have to be files that can be executed by a Windows Command Prompt.   
 
