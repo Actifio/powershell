@@ -1,0 +1,2 @@
+esxcluster,template,profile
+Training,Placebo,LocalProfile
