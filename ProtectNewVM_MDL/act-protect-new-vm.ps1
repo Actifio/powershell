@@ -1,8 +1,8 @@
 #
 # act-protect-new-vms.ps1 -- OnVault version
+# Copyright (c) 2018 Actifio Inc. All Rights Reserved
 #
 # NOTE: This script requires the CDS or Sky appliances to be running 7.0.6+ or 7.1.2+ or higher.
-#       If this is not possible, manual installation of "reporthealth" SARG report is required.
 #
 # This script will connect to the Actifio CDS or Sky systems specified in the appliances.txt
 # file and will build a list of all protected VMware VMs.  It will then initiate a VM
