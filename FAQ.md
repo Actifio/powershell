@@ -1,4 +1,13 @@
-### Can I specify a powershell (PS1) script in an Actifio Workflow?
+### I install the Certifcate when prompted but the next time I connect it prompts me again
+
+When you install the Certificate it is issued to a specific hostname.   In the example below it is *sa-sky*.  This means when you login you need to use that name.   If you instead specify the IP address, even if it resolves to that name, it will not match the name on the certificate.
+```
+Certificate details
+Issuer:  CN=sa-sky, OU=Demo, O=Actifio, L=Waltham, S=Mass, C=US
+Subject:  CN=sa-sky, OU=Demo, O=Actifio, L=Waltham, S=Mass, C=US
+```
+
+### Can I specify a PowerShell (PS1) script in an Actifio Workflow?
 
 Actifio workflows allow you to specify a pre and post script.   For Windows these scripts need to be in either .CMD or .BAT format and have relevant extension.   In other words, these have to be files that can be executed by a Windows Command Prompt.   
 
@@ -76,6 +85,10 @@ Browse to Local Computer Policy -> Computer Configuration -> Administrative Temp
 Enable "Turn on Script Execution"
 Set the policy to "Allow all scripts".
 ```
+### PowerShell 6 never prompts me about Certificates
+
+Please see the section below.
+
 ### I am getting this error message with PowerShell 6:  *An error occurred while sending the request*
 
 PowerShell from version 6 changed from *Windows PowerShell* to just *PowerShell* to reflect that it can now run on Linux and Mac OS.   The commands used for SSL have changed which will require some changes to the Actifio PowerShell Module.   You may see this error:  
