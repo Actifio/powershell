@@ -179,3 +179,7 @@ In this example you can the trusted certificate that was added:
 ![alt text](https://github.com/Actifio/powershell/blob/master/images/2018-06-20_15-23-38.jpg)
 
 If we export the certificate using a webbrowser, we could import using the Certificates snapin.
+
+### I am trying to use PWSH on Linux or Mac OS
+
+We currently don't support these OSs.   While the module will load ok, you cannot connect with SSL.  It may be possible we will support this in a future version of our module.  
