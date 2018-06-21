@@ -1,0 +1,2 @@
+appliance,user,pwfile,vcenter,drappliance,druser,drpwfile
+10.1.1.1,admin,keyfile,vcenter.acme.com
