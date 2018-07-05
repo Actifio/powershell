@@ -17,6 +17,7 @@
 [string] $appliancelist = "./appliancelist.txt"
 
 #  this variable is the command we will run on the Actifio Appliance.  The command needs to be in double quotes
+#  NOTE - This variable will be ignored if you run act2slack with -runcommand
 #  You may need to use different quoting if double quotes are needed inside the select, such as:   
 #  $command = 'reportapps -gc | select apptype,appname,"mdlstat(gb)","total(gb)","postcompress(gb)","organizations"'
    [string]  $command = 'reportrpo | where {$_.Apptype -eq "VMBackup"} | select appname, snapshotdate'
