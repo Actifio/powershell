@@ -29,7 +29,7 @@ To run, simply use syntax like this:
 ```
 To specify a command, then use the runcommand param as shown below.  If the $command parm is specified in the slackparams it will be ignored.  This option is better for running lots of different commands without having a separate slackparams file per command. 
 ```
-./_act2slack.ps1 -paramfile .\slackparams.ps1 -runcommand "udsinfo lsversion"
+./act2slack.ps1 -paramfile .\slackparams.ps1 -runcommand "udsinfo lsversion"
 ```
 
 
