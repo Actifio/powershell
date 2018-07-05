@@ -1,10 +1,10 @@
 # 
-## File: act2slack.ps1
+## File: act2slack2.ps1
 ## Purpose: Sends a post to slack
 ## This script should not require any changes unless you want to change report formatting
 #
 
-param([string]$paramfile = $null)
+param([string]$paramfile = $null,[string]$runcommand = $null)
 
 if (! $paramfile) {
     write-host "You did not specify a paramater file which is needed for this script to work"
@@ -15,6 +15,12 @@ if (! $paramfile) {
 
 # Loads the parameter file in $paramfile
 . $paramfile
+
+# we either run the command specified in the param file or a manual one specified with -runcommand
+if ($runcommand) { 
+    $command = $runcommand 
+    $reportname = $runcommand 
+}
 
 # parse the appliance list and load into an array
 $data = Import-Csv -Path $appliancelist -Header "ApplianceName","ApplianceIP" -Delimiter ","
