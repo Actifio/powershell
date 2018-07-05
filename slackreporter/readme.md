@@ -20,12 +20,19 @@ You can create multiple files like this and you reference the name of the applia
 
 ### Configuration of slackparams.ps1
 Edit slackparams.ps1 with all variables needed.  You can create multiple param files, just give each one a different name.
+You can either specify a command inside the slackparms.ps1 file or manually every time you run act2slack.ps1
 
 ### Execute!
 To run, simply use syntax like this:
 ```
 ./_act2slack.ps1 -paramfile .\slackparams.ps1
 ```
+To specify a command, then use the runcommand param as shown below.  If the $command parm is specified in the slackparams it will be ignored.  This option is better for running lots of different commands without having a separate slackparams file per command. 
+```
+./_act2slack.ps1 -paramfile .\slackparams.ps1 -runcommand "udsinfo lsversion"
+```
+
+
 Example output:
 
 ![alt text](https://github.com/Actifio/powershell/blob/master/slackreporter/images/screencap1.jpg)
