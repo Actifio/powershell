@@ -62,6 +62,10 @@ https://github.com/Actifio/powershell/blob/master/FAQ.md
 (Get-Module ActPowerCLI).Version
 ```
 
+### 3) - 6) Automating the installation process
+
+To automate steps 3-6 listed above, please refer to https://github.com/Actifio/powershell/tree/master/setup-actpowercli
+
 ### 7)  Get some help
 List the available commands in the ActPowerCLI module:
 ```
