@@ -3,7 +3,8 @@
 ## Extracts all the workflow definitions to separate files - $pfx_oracle.csv $pfx_sqlserver.csv and $pfx_sqlinstance.csv
 ## export-wflow.ps1 -help
 ## export-wflow.ps1 -pfx v -afx v2
-# Last Updated: May-11-2018
+# Last Updated: May-11-2018 v1 
+# Last Updated: Oct-29-2018 v1.1 (Updated to support on-demand and scheduled workflows)
 #
 
 # Function Export-Workflow ([string]$targetdir = $null,[switch]$help, [string]$pfx = "v")
@@ -58,7 +59,6 @@ If(!(test-path $targetdir)) {
   New-Item -ItemType Directory -Force -Path $targetdir | out-null
   }
 
-
 $WorkFlows = udsinfo lsworkflow         # Get the list of workflows
 $ii = 0
 $table = @()
@@ -106,7 +106,6 @@ foreach ($wf_Item in $WorkFlows) {
     $curWorkFlow = udsinfo lsworkflow $($wf_Item.id)
     write-if-debug "Workflow Id: " $($curWorkFlow.id)
 
-
     if ($($curWorkFlow.tasks) -ne $null) {
         [xml]$TaskXML = $($curWorkFlow.tasks) 
 # $TaskXML
@@ -116,7 +115,6 @@ foreach ($wf_Item in $WorkFlows) {
         write-not-null $($TaskXML.workflow.policy)              "policy : "
         write-not-null $($TaskXML.workflow.mount.appaware)      "appaware : "
         write-not-null $($TaskXML.workflow.mount.label)         "label : "
-
 
         $myObject | Add-Member -type NoteProperty -name Label -value $($TaskXML.workflow.mount.label)
         $myObject | Add-Member -type NoteProperty -name Policy -value $($TaskXML.workflow.policy)
@@ -135,7 +133,6 @@ foreach ($wf_Item in $WorkFlows) {
             $myObject | Add-Member -type NoteProperty -name mountpoint -value $null
             $myObject | Add-Member -type NoteProperty -name mountdrive -value $null 
         }
-
 
         if ($($TaskXML.workflow.mount.restoreoption) -ne $null) {
 
@@ -156,7 +153,6 @@ foreach ($wf_Item in $WorkFlows) {
             } ## foreach-object
             write-host "`n"
             } ## end-if
-
 
         $myObject | Add-Member -type NoteProperty -name prescript -value $null
         $myObject | Add-Member -type NoteProperty -name postscript -value $null  
@@ -206,10 +202,10 @@ foreach ($wf_Item in $WorkFlows) {
 
         } elseif ($app_type -eq "SQLServer") {
 
-
             $myObject | Add-Member -type NoteProperty -name sqlinstance -value $TaskXML.workflow.mount."provisioning-options".sqlinstance."#text"
             $myObject | Add-Member -type NoteProperty -name dbname -value $TaskXML.workflow.mount."provisioning-options".dbname."#text"
             $myObject | Add-Member -type NoteProperty -name recover -value $TaskXML.workflow.mount."provisioning-options".recover."#text"
+
         } else {
 
             ### SqlInstance
@@ -222,16 +218,14 @@ foreach ($wf_Item in $WorkFlows) {
             $myObject | Add-Member -type NoteProperty -name cgname -value $TaskXML.workflow.mount."provisioning-options".ConsistencyGroupName."#text"
             $myObject | Add-Member -type NoteProperty -name recover -value $TaskXML.workflow.mount."provisioning-options".recover."#text"
             $myObject | Add-Member -type NoteProperty -name dbprefix -value $TaskXML.workflow.mount."provisioning-options".dbnameprefix."#text"
+
             }  ## end-if app_type
 
         $table += $myObject
       
         }   ## end-if curWorkFlow.tasks
     
-
-        
 }   ## end-foreach
-
 
 $outfile = $targetdir + "\" + $pfx + "_oracle.csv"
 write-host "Creating output file $outfile"
