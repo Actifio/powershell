@@ -1,0 +1,3 @@
+appliance,user,pwfile,vcenter
+sa-sky1,user1,user1-pwfile,vcenter.acme.com
+sa-sky2,user1,user1-pwfile,vcenter.acme.com

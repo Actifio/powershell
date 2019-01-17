@@ -1,0 +1,2 @@
+vcenter,vuser,vpwfile,cluster,tag,template,profile
+vcenter,poc\user1,user1-pwfile,poc1,prod,Local Snapshot,LocalProfile
