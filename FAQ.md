@@ -1,4 +1,4 @@
-### I install the Certifcate when prompted but the next time I connect it prompts me again
+### I install the Certificate when prompted but the next time I connect it prompts me again
 
 When you install the Certificate it is issued to a specific hostname.   In the example below it is *sa-sky*.  This means when you login you need to use that name.   If you instead specify the IP address, even if it resolves to that name, it will not match the name on the certificate.
 ```
@@ -183,3 +183,21 @@ If we export the certificate using a webbrowser, we could import using the Certi
 ### I am trying to use PWSH on Linux or Mac OS
 
 We currently don't support these OSs.   While the module will load ok, you cannot connect with SSL.  It may be possible we will support this in a future version of our module.  
+
+### I am getting a 7.0.0 version error 
+
+After upgrading your appliance to 10.0.0.x or higher you will get this error:
+
+```Error: The current platform version: (10.0) 10.0.0.xxx does not support SARG reports via ActPowerCLI. The minimum version for SARG reports via ActPowerCLI is with Actifio CDS/Sky 7.0.0 and higher```
+
+To resolve this you need to upgrade to version 10.0.0.227 of ActPowerCLI or higher.
+
+### I am getting file not found errors
+
+If you installed two different versions of ActPowerCLI in two different locations, you will get this error.  For instance you have modules in both:
+
+c:\windows\system32\WindowsPowerShell\v1.0\modules
+and
+c:\Program Files\WindowsPowerShell\Modules
+
+Delete one module to resolve this error.   You don't need it in two places.
