@@ -3,11 +3,11 @@
 
 These instructions are for a PowerShell Module that is used to manage Actifio Appliances
 
-### 1)   Ensure PowerShell 3.0 and .NET 4.0 are installed.
+### 1)   Ensure PowerShell 3.0 and .NET 4.5 are installed.
 
 Ensure that Windows PowerShell 3.0 to 5.1 or above is installed on the target workstation.
 For Windows 7 SP1 and Windows 2008 R2, PowerShell 3.0 should already be installed. 
-We also need .NET 4.0 installed on the OS. To find out the PowerShell version, start PowerShell and then enter the version command as shown:  
+We also need .NET 4.5 installed on the OS. To find out the PowerShell version, start PowerShell and then enter the version command as shown:  
 ```
 powershell
 $host.version 
@@ -18,10 +18,12 @@ To find out the current version of .NET Framework, enter the following in PowerS
 ```
 $PSVersionTable.CLRVersion 
 ```
-#### PowerShell version 6
 
-Issues have been seen running PowerShell (as opposed to Windows PowerShell) version 6.0.  
-At this time we support Windows PowerShell 3.0 to 5.1
+Note that the second digit can be misleading.  For instance 4.0.30319.42000 is actually .NET 4.6
+
+#### PowerShell Core
+
+PowerShell Core (as opposed to Windows PowerShell) has been tested on Windows.   At this time the only known issue is that SSL Certificates need to be manually imported before using PowerShell Core.
 
 ### 2)   Confirm if the actpowercli module is already installed
 
@@ -42,7 +44,7 @@ Get-ChildItem Env:\PSModulePath | format-list
 1. Download the actpowercli zip file but don't unzip it
 1. Right select the downloaded zip file and choose properties
 1. At the bottom of the properties window select the Unblock button next to the message: *This file came from another computer and might be blocked to help protect this computer*
-1. Unzip the ActPOWERCLI-10.0.0.227.zip software and copy the ActPowerCLI folder inside it to a relevant directory.  For example:
+1. Unzip the ActPOWERCLI-10.0.0.312.zip software and copy the ActPowerCLI folder inside it to a relevant directory.  For example:
 ```
 c:\windows\system32\windowspowershell\v1.0\modules 
 ```
