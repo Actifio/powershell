@@ -225,3 +225,10 @@ Once you are finished, make sure to disconnect (logout).   If you are running ma
 Disconnect-Act
 ```
 
+
+
+# I have more questions!
+
+Have you looked here?
+
+https://github.com/Actifio/powershell/blob/master/FAQ.md
