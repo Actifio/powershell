@@ -24,12 +24,40 @@ The following are actions supported:
 The following are sample of the different operations supported:
 
 ### _genparamfile_
+Create a sample parameter file in .\vdpSampleParam.ps1 file .
 ```
-.\ManageDB.ps1 -action genparamfile
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action genparamfile
+Generating all the parameters in .\vdpSampleParam.ps1 file
+PS C:\Users\johndoe\Desktop>
 ```
 
 ### _config_
+Create an encrypted password file in c:\keys\cliuser.key .
 ```
-.\ManageDB.ps1 -action config -paramfile .\vdpbigdb.ps1
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action config -paramfile .\vdpacme.ps1
+Enter the full filename (e.g. c:\vdp\password.key): : c:\keys\cliuser.key
+PS C:\Users\johndoe\Desktop>
 ```
 
+### _cleanup_
+Clean up an existing mount on the target server.
+```
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action cleanup -paramfile .\actjpmc.ps1
+
+Connected to 172.27.24.96
+
+About to unmount the application if it's mounted.....
+
+Executing: udstask unmountimage -delete -image Image_2530009 | Out-Null
+Success!
+```
+
+### _provision_
+Provision a virtual database using the latest VDP image.
+```
+```
+
+### _refresh_
+Unmount an existing image and provision a virtual database using the latest VDP image.
+```
+```
