@@ -125,14 +125,15 @@ Success!
 ---
 
 ## FAQ
-Q: Is there a way where I can find out the CLI commands without executing them?
-A: Yes, set `$debug = $True` in the parameter file
-
-Q: How do I specify the ORACLE_SID when provisioning or refreshing an Oracle database?
-A: The `$tgt_appname` in the parameter file is synonymous with the Oracle SID.
-
-Q: How do I secure the password of the VDP CLI user?
-A: Use the `config` option to store the password in an encrypted file. Modify the parameter file to use the encrypted file using the `$vdppasswordfile` in the parameter file.
-
-Q: Can I include pre and post scripts as part of the provisioning / refresh process?
-A: Yes, set the name of the scripts in `$pre_scriptfile` and `$post_scriptfile` parameters. You can also set the timeouts for the pre & post scripts in `$pre_timeout` and `$post_timeout`. For Linux, use the `.sh` extension, and `.bat` for Windows.
+Q: Is there a way where I can find out the CLI commands without executing them?  
+A: Yes, set `$debug = $True` in the parameter file. 
+  
+Q: How do I specify the ORACLE_SID when provisioning or refreshing an Oracle database?  
+A: The `$tgt_appname` in the parameter file is synonymous with the Oracle SID.  
+  
+Q: How do I secure the password of the VDP CLI user?  
+A: Use the `config` option to store the password in an encrypted file. Modify the parameter file to use the encrypted file using the `$vdppasswordfile` in the parameter file.  
+  
+Q: Can I include pre and post scripts as part of the provisioning / refresh process?  
+A: Yes, set the name of the scripts in `$pre_scriptfile` and `$post_scriptfile` parameters. You can also set the timeouts for the pre & post scripts in `$pre_timeout` and `$post_timeout`. For Linux, use the `.sh` extension, and `.bat` for Windows.  
+  
