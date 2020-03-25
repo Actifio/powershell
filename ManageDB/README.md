@@ -50,7 +50,7 @@ Clean up an existing mount on the target server.
 ```
 PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action cleanup -paramfile .\vdpacme.ps1
 
-Connected to 172.27.24.96
+Connected to 10.10.10.1
 
 About to unmount the application if it's mounted.....
 
@@ -63,7 +63,7 @@ Provision a virtual database using the latest VDP image.
 ```
 PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action provision -paramfile .\vdpacme.ps1
 
-Connected to 172.27.24.96
+Connected to 10.10.10.1
 
 Mounting ACMESA to acme-ora01 as demodb...
 
@@ -80,7 +80,7 @@ Job is now running....
 
 Displaying the statistics for Job_2533877
 
-Kicking off an on-demand provision of virtual database demodb on jpmc-ora01 using images from JPMCSA database
+Kicking off an on-demand provision of virtual database demodb on acme-ora01 using images from ACMESA database
 
 demodb database is successfully provisioned on acme-ora01 !!
 Job started at 2020-03-25 21:48:15.427 , and took 00:13:00 to complete.
@@ -91,4 +91,34 @@ Success!
 ### _refresh_
 Unmount an existing image and provision a virtual database using the latest VDP image.
 ```
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action refresh -paramfile .\vdpacme.ps1
+
+Connected to 10.10.10.1
+
+About to unmount the application if it's mounted.....
+
+Executing: udstask unmountimage -delete -image Image_2533877 | Out-Null
+
+Mounting ACMESA to acme-ora01 as demodb...
+
+Executing: udstask mountimage -appid 11343 -host 11107 -appaware -restoreoption "provisioningoptions=<provisioningoptions><databasesid>demodb</databasesid><username>oracle</username><orahome>/u01/app/oracle</orahome><totalmemory>1536</totalmemory><sgapct>80</sgapct><nonid>false</nonid><noarchivemode>false</noarchivemode><notnsupdate>false</notnsupdate><rrecovery>true</rrecovery><standalone>true</standalone></provisioningoptions>,reprotect=false" -nowait | Out-Null
+
+Job is now running....
+- Progress% : 18 ...
+- Progress% : 51 ...
+- Progress% : 53 ...
+- Progress% : 58 ...
+- Progress% : 59 ...
+- Progress% : 61 ...
+- Progress% : 96 ...
+- Progress% : 99 ...
+
+Displaying the statistics for Job_2533877
+
+Kicking off an on-demand provision of virtual database demodb on acme-ora01 using images from ACMESA database
+
+demodb database is successfully provisioned on acme-ora01 !!
+Job started at 2020-03-25 21:48:15.427 , and took 00:13:00 to complete.
+The size of demodb on acme-ora01 is 1978.177 GB, and actual storage consumed is 0.249 GB
+Success!
 ```
