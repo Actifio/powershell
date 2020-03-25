@@ -113,12 +113,12 @@ Job is now running....
 - Progress% : 96 ...
 - Progress% : 99 ...
 
-Displaying the statistics for Job_2533877
+Displaying the statistics for Job_2537228
 
 Kicking off an on-demand provision of virtual database demodb on acme-ora01 using images from ACMESA database
 
 demodb database is successfully provisioned on acme-ora01 !!
-Job started at 2020-03-25 21:48:15.427 , and took 00:13:00 to complete.
-The size of demodb on acme-ora01 is 1978.177 GB, and actual storage consumed is 0.249 GB
+Job started at 2020-03-25 22:11:19.015 , and took 00:13:30 to complete.
+The size of demodb on jpmc-ora01 is 1978.177 GB, and actual storage consumed is 0.248 GB
 Success!
 ```
