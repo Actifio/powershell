@@ -36,13 +36,19 @@ Create an encrypted password file in c:\keys\cliuser.key .
 ```
 PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action config -paramfile .\vdpacme.ps1
 Enter the full filename (e.g. c:\vdp\password.key): : c:\keys\cliuser.key
+PS C:\Users\johndoe\Desktop> dir c:\keys\cliuser.key
+    Directory: C:\keys
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+-a----        3/25/2020   5:21 AM            654 cliuser.key
+
 PS C:\Users\johndoe\Desktop>
 ```
 
 ### _cleanup_
 Clean up an existing mount on the target server.
 ```
-PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action cleanup -paramfile .\actjpmc.ps1
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action cleanup -paramfile .\vdpacme.ps1
 
 Connected to 172.27.24.96
 
@@ -55,6 +61,31 @@ Success!
 ### _provision_
 Provision a virtual database using the latest VDP image.
 ```
+PS C:\Users\johndoe\Desktop> .\ManageDB.ps1 -action provision -paramfile .\vdpacme.ps1
+
+Connected to 172.27.24.96
+
+Mounting ACMESA to acme-ora01 as demodb...
+
+Executing: udstask mountimage -appid 11343 -host 11107 -appaware -restoreoption "provisioningoptions=<provisioningoptions><databasesid>demodb</databasesid><username>oracle</username><orahome>/u01/app/oracle</orahome><totalmemory>1536</totalmemory><sgapct>80</sgapct><nonid>false</nonid><noarchivemode>false</noarchivemode><notnsupdate>false</notnsupdate><rrecovery>true</rrecovery><standalone>true</standalone></provisioningoptions>,reprotect=false" -nowait | Out-Null
+
+Job is now running....
+- Progress% : 51 ...
+- Progress% : 57 ...
+- Progress% : 58 ...
+- Progress% : 59 ...
+- Progress% : 60 ...
+- Progress% : 96 ...
+- Progress% : 99 ...
+
+Displaying the statistics for Job_2533877
+
+Kicking off an on-demand provision of virtual database demodb on jpmc-ora01 using images from JPMCSA database
+
+demodb database is successfully provisioned on acme-ora01 !!
+Job started at 2020-03-25 21:48:15.427 , and took 00:13:00 to complete.
+The size of demodb on acme-ora01 is 1978.177 GB, and actual storage consumed is 0.249 GB
+Success!
 ```
 
 ### _refresh_
