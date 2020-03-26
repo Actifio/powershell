@@ -139,3 +139,6 @@ A: Yes, set the name of the scripts in `$pre_scriptfile` and `$post_scriptfile` 
   
 Q: Can I mimic the workflow functionality in VDP using this script?  
 A: Yes, for on-demand, create a shortcut in Windows that invoke this PS script. When you click on it, it will trigger the script. To schedule this job on a regular basis, use the Microsoft Task Scheduler or any other third party tools.   
+  
+Q: How do I get more help on the script?  
+A: This script support PowerShell `Get-Help` cmdlet. Enter the command `get-help .\ManageDB.ps1` , `get-help .\ManageDB.ps1 -detailed` to get detail help on the script.  
