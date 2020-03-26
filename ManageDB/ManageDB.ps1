@@ -15,11 +15,11 @@
 .PARAMETER paramfile
     The parameter file holding all the configurations related to the virtual database and VDP appliance.    
 .EXAMPLE
-    .\ManageDB-db.ps1 -action config -paramfile .\actparams.ps1
-    .\ManageDB-db.ps1 -action cleanup -paramfile .\actparams.ps1
-    .\ManageDB-db.ps1 -action refresh -paramfile .\actparams.ps1
-    .\ManageDB-db.ps1 -action provision -paramfile .\actparams.ps1
-    .\ManageDB-db.ps1 -action genparamfile
+    .\ManageDB.ps1 -action config -paramfile .\actparams.ps1
+    .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1
+    .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1
+    .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1
+    .\ManageDB.ps1 -action genparamfile
 .NOTES   
     Name: ManageDB.ps1
     Author: Michael Chew
@@ -45,11 +45,11 @@ Param
 function Display-Usage ()
 {
     write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
-    write-host " .\ManageDB-db.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file (`$vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
-    write-host " .\ManageDB-db.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB-db.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB-db.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
-    write-host " .\ManageDB-db.ps1 -action genparamfile                          -- to generate a sample parameterfile "
+    write-host " .\ManageDB.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file (`$vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
+    write-host " .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
+    write-host " .\ManageDB.ps1 -action genparamfile                          -- to generate a sample parameterfile "
 
 }     ### end of function
 
@@ -90,6 +90,7 @@ function Gen-Sample-ParamFile ()
   "[string] `$tgt_appname = " + [char]34 + "demodb" + [char]34 + "          ## Mounted application name = Oracle SID (demodb) for Oracle database" | Out-File $sampleFile -Append  -Encoding Ascii 
   "[string] `$tgt_orauser = " + [char]34 + "oracle" + [char]34 + "          ## Oracle OS user            oracle" | Out-File $sampleFile -Append  -Encoding Ascii 
   "[string] `$tgt_orahome = " + [char]34 + "/home/oracle/app/oracle/product/12.2.0/dbhome_1" + [char]34 + "    ## Oracle Home Directory  /u01/oracle/product/12.1.0.2" | Out-File $sampleFile -Append  -Encoding Ascii 
+  "[string] `$tgt_tnsorahome = " + [char]34 + "/home/oracle/app/oracle/product/12.2.0/dbhome_1/network/admin" + [char]34 + "    ## Oracle Home Directory  /u01/oracle/product/12.1.0.2" | Out-File $sampleFile -Append  -Encoding Ascii 
   "[string] `$tgt_sgasize = " + [char]34 + "1536" + [char]34 + "            ## Oracle SGA size in MB          1024" | Out-File $sampleFile -Append  -Encoding Ascii 
   "[string] `$tgt_sgapct = " + [char]34 + "80" + [char]34 + "               ## Oracle SGA size percentage     80" | Out-File $sampleFile -Append  -Encoding Ascii 
   "[string] `$tgt_numprocs = " + [char]34 + "100" + [char]34 + "            ## Oracle number of processes     100" | Out-File $sampleFile -Append  -Encoding Ascii 
@@ -243,11 +244,13 @@ function Mount-Ora-App (
     $volstr = ""    
   }
 
+## for v8.0.8 >  "<noarchivemode>$tgtarchmode</noarchivemode>"
+
   $xmlstring = "-restoreoption " + [char]34 + $volstr + ` 
        "provisioningoptions=<provisioningoptions>" + "<databasesid>$tgtorasid</databasesid>" + `
        "<username>$tgtorauser</username>"+ "<orahome>$tgtorahome</orahome>" + `
        "<totalmemory>$tgtsgasize</totalmemory>" + "<sgapct>$tgtsgapct</sgapct>" + `
-       "<nonid>false</nonid>" + "<noarchivemode>$tgtarchmode</noarchivemode>" + `
+       "<nonid>false</nonid>" + "<tnsadmindir>$tgt_tnsorahome</tnsadmindir>" + `
        "<notnsupdate>false</notnsupdate>" + "<rrecovery>true</rrecovery>" `
        + "<standalone>true</standalone></provisioningoptions>,reprotect=false" + [char]34
 
