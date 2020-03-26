@@ -5,7 +5,37 @@
 # Version 1.0 Initial Release
 #
 
-param([string]$paramfile = $null, [string]$action = "")
+<#   
+.SYNOPSIS   
+   Manages the lifecycle of the virtual Oracle and SQL database.
+.DESCRIPTION 
+   This is a powershell script that helps you manage the lifecycle of virtual SQL or Oracle database. It allows the user to remove the virtual database, provision a copy of the virtual database, and also refresh an existing mount with the latest image stored in VDP. This script can be used if user is not interested in using the VDP workflow feature.
+.PARAMETER action
+    The action or commands that can be performed against the virtual database. This include config, cleanup, refresh, provision and genparamfile.
+.PARAMETER paramfile
+    The parameter file holding all the configurations related to the virtual database and VDP appliance.    
+.EXAMPLE
+    .\ManageDB-db.ps1 -action config -paramfile .\actparams.ps1
+    .\ManageDB-db.ps1 -action cleanup -paramfile .\actparams.ps1
+    .\ManageDB-db.ps1 -action refresh -paramfile .\actparams.ps1
+    .\ManageDB-db.ps1 -action provision -paramfile .\actparams.ps1
+    .\ManageDB-db.ps1 -action genparamfile
+.NOTES   
+    Name: ManageDB.ps1
+    Author: Michael Chew
+    DateCreated: 25-March-2020
+.LINK
+    https://github.com/Actifio/powershell/blob/master/ManageDB     
+#>
+
+[CmdletBinding()]
+Param
+( 
+  # Parameter File with all the configurations to the script
+  [string]$paramfile = $null, 
+  # What action and operation you want to perform using this script
+  [string]$action = ""
+)  ### Param
 
 ##################################
 # Function: Display-Usage
@@ -15,11 +45,11 @@ param([string]$paramfile = $null, [string]$action = "")
 function Display-Usage ()
 {
     write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
-    write-host " .\ManageDB.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file ($vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
-    write-host " .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
-    write-host " .\ManageDB.ps1 -action genparamfile                          -- to generate a sample parameterfile "
+    write-host " .\ManageDB-db.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file (`$vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
+    write-host " .\ManageDB-db.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB-db.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB-db.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
+    write-host " .\ManageDB-db.ps1 -action genparamfile                          -- to generate a sample parameterfile "
 
 }     ### end of function
 
@@ -150,9 +180,39 @@ function Monitor-Mount (
   return $JobID
 }     ### end of function
 
+##################################
+# Function: Build-PrePostScript
+#
+##################################
+function Build-PrePostScript () 
+{
+  $UseScript = $False
+  if ($pre_scriptfile -eq $null -or $pre_scriptfile -eq "") {
+    $localScript = $null
+  } else {
+    $localScript = "phase=PRE:name=" + $pre_scriptfile 
+    if (! ($pre_timeout -eq $null -or $pre_timeout -eq "")) {
+      $localScript += ":timeout=" + $pre_timeout      
+    }
+    $UseScript = $True
+  }
+  
+  if ($post_scriptfile -ne $null -and $post_scriptfile -ne "") {
+    if ($localScript -ne $null) {
+      $localScript += ";"
+    }
+    $localScript += "phase=POST:name=" + $post_scriptfile 
+    if (! ($post_timeout -eq $null -or $post_timeout -eq "")) {
+      $localScript += ":timeout=" + $post_timeout      
+    }
+    $UseScript = $True
+  }
+
+  return $UseScript, $localScript
+}     ### end of function
 
 ##################################
-# Function: Mount-App
+# Function: Mount-Ora-App
 #
 ##################################
 
@@ -191,27 +251,7 @@ function Mount-Ora-App (
        "<notnsupdate>false</notnsupdate>" + "<rrecovery>true</rrecovery>" `
        + "<standalone>true</standalone></provisioningoptions>,reprotect=false" + [char]34
 
-  $UseScript = $False
-  if ($pre_scriptfile -eq $null -or $pre_scriptfile -eq "") {
-    $localScript = $null
-  } else {
-    $localScript = "phase=PRE:name=" + $pre_scriptfile 
-    if (! ($pre_timeout -eq $null -or $pre_timeout -eq "")) {
-      $localScript += ":timeout=" + $pre_timeout      
-    }
-    $UseScript = $True
-  }
-  
-  if ($post_scriptfile -ne $null -and $post_scriptfile -ne "") {
-    if ($localScript -ne $null) {
-      $localScript += ";"
-    }
-    $localScript += "phase=POST:name=" + $post_scriptfile 
-    if (! ($post_timeout -eq $null -or $post_timeout -eq "")) {
-      $localScript += ":timeout=" + $post_timeout      
-    }
-    $UseScript = $True
-  }
+  $UseScript, $localScript = Build-PrePostScript
 
    write-host "`nMounting $srcappname to $tgthostname as $tgtorasid...`n" 
    if ( $UseScript ) {
@@ -252,27 +292,7 @@ function Mount-Sql-App (
        "<dbname>$tgtappname</dbname>" + "<recover>true</recover>" + `
        "</provisioningoptions>,reprotect=false" + [char]34
 
-  $UseScript = $False
-  if ($pre_scriptfile -eq $null -or $pre_scriptfile -eq "") {
-    $localScript = $null
-  } else {
-    $localScript = "phase=PRE:name=" + $pre_scriptfile 
-    if (! ($pre_timeout -eq $null -or $pre_timeout -eq "")) {
-      $localScript += ":timeout=" + $pre_timeout      
-    }
-    $UseScript = $True
-  }
-  
-  if ($post_scriptfile -ne $null -and $post_scriptfile -ne "") {
-    if ($localScript -ne $null) {
-      $localScript += ";"
-    }
-    $localScript += "phase=POST:name=" + $post_scriptfile 
-    if (! ($post_timeout -eq $null -or $post_timeout -eq "")) {
-      $localScript += ":timeout=" + $post_timeout      
-    }
-    $UseScript = $True
-  }
+  $UseScript, $localScript = Build-PrePostScript
 
    write-host "`nMounting $srcappname to $tgthostname as $tgtorasid...`n" 
    if ( $UseScript ) {
@@ -446,3 +466,4 @@ if ($action -ne "cleanup") {
 
 Disconnect-Act
 exit
+
