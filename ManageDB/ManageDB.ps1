@@ -105,10 +105,10 @@ function Gen-Sample-ParamFile ()
   "`n## " | Out-File $sampleFile -Append  -Encoding Ascii
   "### pre and post scripts " | Out-File $sampleFile -Append  -Encoding Ascii
   "## " | Out-File $sampleFile -Append  -Encoding Ascii
-  "[string] `$pre_scriptfile = " + [char]34 + "p1.sh" + [char]34   | Out-File $sampleFile -Append  -Encoding Ascii
-  "[string] `$pre_timeout = " + [char]34 + "180" + [char]34       | Out-File $sampleFile -Append  -Encoding Ascii
-  "[string] `$post_scriptfile = " + [char]34 + "p2.sh" + [char]34 | Out-File $sampleFile -Append  -Encoding Ascii
-  "[string] `$post_timeout = " + [char]34 + "200" + [char]34      | Out-File $sampleFile -Append  -Encoding Ascii
+  "#[string] `$pre_scriptfile = " + [char]34 + "p1.sh" + [char]34   | Out-File $sampleFile -Append  -Encoding Ascii
+  "#[string] `$pre_timeout = " + [char]34 + "180" + [char]34       | Out-File $sampleFile -Append  -Encoding Ascii
+  "#[string] `$post_scriptfile = " + [char]34 + "p2.sh" + [char]34 | Out-File $sampleFile -Append  -Encoding Ascii
+  "#[string] `$post_timeout = " + [char]34 + "200" + [char]34      | Out-File $sampleFile -Append  -Encoding Ascii
 }     ### end of function
 
 ##################################
