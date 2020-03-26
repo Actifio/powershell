@@ -137,3 +137,5 @@ A: Use the `config` option to store the password in an encrypted file. Modify th
 Q: Can I include pre and post scripts as part of the provisioning / refresh process?  
 A: Yes, set the name of the scripts in `$pre_scriptfile` and `$post_scriptfile` parameters. You can also set the timeouts for the pre & post scripts in `$pre_timeout` and `$post_timeout`. For Linux, use the `.sh` extension, and `.bat` for Windows.  
   
+Q: Can I mimic the workflow functionality in VDP using this script?  
+A: Yes, for on-demand, create a shortcut in Windows that invoke this PS script. When you click on it, it will trigger the script. To schedule this job on a regular basis, use the Microsoft Task Scheduler or any other third party tools.   
