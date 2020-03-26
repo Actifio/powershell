@@ -1,6 +1,8 @@
 # 
-## File: refresh-db.ps1
+## File: ManageDB.ps1
 ## Purpose: Refreshes the Oracle database listed in actparams.ps1 
+#
+# Version 1.0 Initial Release
 #
 
 param([string]$paramfile = $null, [string]$action = "")
@@ -13,11 +15,11 @@ param([string]$paramfile = $null, [string]$action = "")
 function Display-Usage ()
 {
     write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
-    write-host " .\ManageDB-db.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file ($vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
-    write-host " .\ManageDB-db.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB-db.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB-db.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
-    write-host " .\ManageDB-db.ps1 -action genparamfile                          -- to generate a sample parameterfile "
+    write-host " .\ManageDB.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file ($vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
+    write-host " .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
+    write-host " .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
+    write-host " .\ManageDB.ps1 -action genparamfile                          -- to generate a sample parameterfile "
 
 }     ### end of function
 
@@ -444,4 +446,3 @@ if ($action -ne "cleanup") {
 
 Disconnect-Act
 exit
-
