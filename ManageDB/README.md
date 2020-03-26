@@ -1,6 +1,6 @@
 ## What does this do?
 
-This is a powershell script that helps you manage the lifecycle of virtual SQL or Oracle database. It allows the user to remove the virtual database, provision a copy the virtual database, and also refresh an existing mount with the latest image stored in VDP. This script can be used if user is not interested in using the VDP workflow feature.
+This is a powershell script that helps you manage the lifecycle of virtual SQL or Oracle database. It allows the user to remove the virtual database, provision a copy of the virtual database, and also refresh an existing mount with the latest image stored in VDP. This script can be used if user is not interested in using the VDP workflow feature.
 
 ## How does this work?
 
