@@ -15,11 +15,25 @@
 .PARAMETER paramfile
     The parameter file holding all the configurations related to the virtual database and VDP appliance.    
 .EXAMPLE
-    .\ManageDB.ps1 -action config -paramfile .\actparams.ps1
-    .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1
-    .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1
-    .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1
     .\ManageDB.ps1 -action genparamfile
+
+    To generate a sample parameterfile. Customise the value in this generated and use it as input to other commands.
+.EXAMPLE
+    PS > .\ManageDB.ps1 -action config -paramfile .\actparams.ps1
+
+    To create an encrypted password file ($vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or enter the password when prompt for it. Once created, you can remove the $vdppassword entry from the parameterfile to secure the credentials.
+.EXAMPLE 
+    PS > .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1
+
+    To unmount an application defined in the parameterfile (-paramfile).
+.EXAMPLE
+    .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1
+
+    To unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile) 
+.EXAMPLE
+    .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1
+
+    To mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)
 .NOTES   
     Name: ManageDB.ps1
     Author: Michael Chew
@@ -45,12 +59,9 @@ Param
 function Display-Usage ()
 {
     write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
-    write-host " .\ManageDB.ps1 -action config -paramfile .\actparams.ps1     -- to create a password file (`$vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values"
-    write-host " .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1    -- to unmount an application defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1    -- to unmount an existing application and mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"
-    write-host " .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1  -- to mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)"        
-    write-host " .\ManageDB.ps1 -action genparamfile                          -- to generate a sample parameterfile "
-
+    write-host " get-help .\ManageDB.ps1 -examples"
+    write-host " get-help .\ManageDB.ps1 -detailed"
+    write-host " get-help .\ManageDB.ps1 -full"    
 }     ### end of function
 
 ##################################
@@ -67,7 +78,7 @@ function Gen-Sample-ParamFile ()
 
   "## File: $sampleFile" | Out-File $sampleFile -Encoding Ascii
 
-  "## Purpose: Sets the parameters required for the ManageDB.ps1 PowerShell script" | Out-File $sampleFile -Append  -Encoding Ascii
+  "## Purpose: Sets the parameters required for the ManageDB.ps1 v $ManageDBversion PowerShell script" | Out-File $sampleFile -Append  -Encoding Ascii
   "## Last Updated: $currdate" | Out-File $sampleFile -Append  -Encoding Ascii
   "#" | Out-File $sampleFile -Append  -Encoding Ascii
   "`n## " | Out-File $sampleFile -Append  -Encoding Ascii
@@ -349,6 +360,8 @@ function Report-AppUsage (
 #  M A I N    B O D Y
 #
 ##############################
+
+$ManageDBversion="1.0"
 
 if (! $action) {
     Display-Usage
