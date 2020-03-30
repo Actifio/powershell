@@ -3,6 +3,7 @@
 ## Purpose: Refreshes the Oracle database listed in actparams.ps1 
 #
 # Version 1.0 Initial Release
+# Version 1.1 Added additional operations: bookmark, rewind, unmount, remount
 #
 
 <#   
@@ -25,7 +26,7 @@
 .EXAMPLE 
     PS > .\ManageDB.ps1 -action cleanup -paramfile .\actparams.ps1
 
-    To unmount an application defined in the parameterfile (-paramfile).
+    To remove a mounted application defined in the parameterfile (-paramfile). If the application is unmounted, you will need to remount and run cleanup to remove the application.
 .EXAMPLE
     .\ManageDB.ps1 -action refresh -paramfile .\actparams.ps1
 
@@ -34,10 +35,19 @@
     .\ManageDB.ps1 -action provision -paramfile .\actparams.ps1
 
     To mount the new application using the latest VDP image and values defined in the parameterfile (-paramfile)
+.EXAMPLE 
+    PS > .\ManageDB.ps1 -action unmount -paramfile .\actparams.ps1
+
+    To unmount but not remove the application defined in the parameterfile (-paramfile).
+.EXAMPLE 
+    PS > .\ManageDB.ps1 -action remount -paramfile .\actparams.ps1
+
+    To remount the application that was unmounted earlier. All the AppAware mount settings is specified in the parameterfile (-paramfile).
 .NOTES   
     Name: ManageDB.ps1
     Author: Michael Chew
     DateCreated: 25-March-2020
+    LastUpdated: 30-March-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/ManageDB     
 #>
@@ -51,14 +61,16 @@ Param
   [string]$action = ""
 )  ### Param
 
+$ManageDBversion = "1.1"
+$ActionList =@("config","cleanup","refresh","provision","unmount","remount","bookmark","rewind")
+
 ##################################
 # Function: Display-Usage
 #
 ##################################
-
 function Display-Usage ()
 {
-    write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
+    write-host "Usage: .\ManageDB.ps1 -action [ config | cleanup | refresh | provision | unmount | remount ] -paramfile [ full pathname of the parameter file ] | -action genparamfile `n"
     write-host " get-help .\ManageDB.ps1 -examples"
     write-host " get-help .\ManageDB.ps1 -detailed"
     write-host " get-help .\ManageDB.ps1 -full"    
@@ -91,7 +103,7 @@ function Gen-Sample-ParamFile ()
   
   "`n[bool] `$oracle_app = `$False                ## Is this an Oracle or SQL database? " | Out-File $sampleFile -Append  -Encoding Ascii
   "[bool] `$debug = `$False              " | Out-File $sampleFile -Append  -Encoding Ascii
-
+  
   "`n## " | Out-File $sampleFile -Append  -Encoding Ascii
   "### Oracle database related parameters " | Out-File $sampleFile -Append  -Encoding Ascii
   "## " | Out-File $sampleFile -Append  -Encoding Ascii
@@ -127,23 +139,26 @@ function Gen-Sample-ParamFile ()
 # Function: Unmount-App
 #
 ##################################
-
 function Unmount-App (
   [string]$srcappname,
   [string]$srchostname,
   [string]$tgtappname,
   [string]$tgthostname,
-  [bool]$force )
+  [bool]$force, 
+  [bool]$ToDelete )
 {
-  Write-Host "`nAbout to unmount the application if it's mounted..... `n"
-
   $cmdline = $( reportmountedimages -c | where { $_.MountedAppName -eq $tgtappname -And $_.MountedHost -eq $tgthostname -And $_.SourceApp -eq $srcappname -And $_.SourceHost -eq $srchostname } ).UnmountDeleteCommand
 
   if ($cmdline -ne $Null) {
+    Write-Host "`nUnnmounting the $tgtappname application ..... `n"
+
     if ($force) {
       $cmdline = $cmdline + " -force"
       }
     $cmdline = $cmdline.Replace("-nowait ","")
+    if ($ToDelete -eq $False) {
+      $cmdline = $cmdline.Replace("-delete ","")
+    }
     $cmdline = $cmdline + " | Out-Null "
 
     if ($debug) {
@@ -155,17 +170,14 @@ function Unmount-App (
 
 
   } else {
-    write-host "There is nothing to unmount "  
+    write-host "`nThere is nothing to unmount !! "  
   }
-  
 }     ### end of function
-
 
 ##################################
 # Function: Monitor-Mount
 #
 ##################################
-
 function Monitor-Mount ( 
   [string]$srcappname,
   [string]$srchostname,
@@ -224,10 +236,65 @@ function Build-PrePostScript ()
 }     ### end of function
 
 ##################################
+# Function: BuildOraXml
+#
+##################################
+function BuildOraXml (
+  [string]$vdpversion,
+  [string]$tgtorasid,
+  [string]$tgtorauser,
+  [string]$tgtorahome,
+  [string]$tgtsgasize,  
+  [string]$tgtsgapct,  
+  [string]$tgtarchmode,  
+  [string]$tgtdiskgrp,
+  [string]$tgtnodeip )
+{
+  if ($tgtdiskgrp -ne "") {
+    $volstr = "volgroupname=" + $tgtdiskgrp 
+    if ($tgtdiskgrp -ne "") {
+      $volstr = $volstr + ",asmracnodelist=" + $tgtnodeip 
+      }
+    $volstr = $volstr + ","  
+  } else {
+    $volstr = ""    
+  }
+
+  $subxmlstring = $null
+  if ( [version]::Parse($vdpversion) -ge [version]::Parse('10.0') ) {
+    $subxmlstring += "<noarchivemode>$tgtarchmode</noarchivemode>" 
+    if ($tgt_tnsorahome -ne $null) {
+      $subxmlstring += "<tnsadmindir>$tgt_tnsorahome</tnsadmindir>"
+      }
+  } elseif ( [version]::Parse($vdpversion) -ge [version]::Parse('9.0') ) {  
+    $subxmlstring += "<noarchivemode>$tgtarchmode</noarchivemode>" 
+    if ($tgt_tnsorahome -ne $null) {
+      $subxmlstring += "<tnsadmindir>$tgt_tnsorahome</tnsadmindir>"
+      }
+  } else {
+    if ($tgt_tnsorahome -eq $null) {
+      Write-Host "please specify `$tgt_tnsorahome in the config file. It's required for $vdpversion"
+      }
+    else {
+      $subxmlstring += "<tnsadmindir>$tgt_tnsorahome</tnsadmindir>"
+    }
+  }
+
+  $xmlstring = "-restoreoption " + [char]34 + $volstr + ` 
+       "provisioningoptions=<provisioningoptions>" + "<databasesid>$tgtorasid</databasesid>" + `
+       "<username>$tgtorauser</username>"+ "<orahome>$tgtorahome</orahome>" + `
+       "<totalmemory>$tgtsgasize</totalmemory>" + "<sgapct>$tgtsgapct</sgapct>" + `
+       "<nonid>false</nonid>" + $subxmlstring + `
+       "<notnsupdate>false</notnsupdate>" + "<rrecovery>true</rrecovery>" `
+       + "<standalone>true</standalone></provisioningoptions>,reprotect=false" + [char]34
+
+  return $xmlstring
+}     ### end of function
+
+##################################
 # Function: Mount-Ora-App
 #
 ##################################
-
 function Mount-Ora-App ( 
   [string]$srcappname,
   [string]$srchostname,
@@ -241,30 +308,10 @@ function Mount-Ora-App (
   [string]$tgtdiskgrp,
   [string]$tgtnodeip )
 {
-
   $appid = $(reportapps | where-object { $_.HostName -eq $srchostname -and $_.AppName -eq $srcappname }).AppID
   $hostid = $(udsinfo lshost -filtervalue "hostname=$tgthostname").id
 
-  if ($tgtdiskgrp -ne "") {
-    $volstr = "volgroupname=" + $tgtdiskgrp 
-    if ($tgtdiskgrp -ne "") {
-      $volstr = $volstr + ",asmracnodelist=" + $tgtnodeip 
-      }
-    $volstr = $volstr + ","  
-  } else {
-    $volstr = ""    
-  }
-
-## for v8.0.8 >  "<noarchivemode>$tgtarchmode</noarchivemode>"
-
-  $xmlstring = "-restoreoption " + [char]34 + $volstr + ` 
-       "provisioningoptions=<provisioningoptions>" + "<databasesid>$tgtorasid</databasesid>" + `
-       "<username>$tgtorauser</username>"+ "<orahome>$tgtorahome</orahome>" + `
-       "<totalmemory>$tgtsgasize</totalmemory>" + "<sgapct>$tgtsgapct</sgapct>" + `
-       "<nonid>false</nonid>" + "<tnsadmindir>$tgt_tnsorahome</tnsadmindir>" + `
-       "<notnsupdate>false</notnsupdate>" + "<rrecovery>true</rrecovery>" `
-       + "<standalone>true</standalone></provisioningoptions>,reprotect=false" + [char]34
-
+  $xmlstring = BuildOraXml $vdpversion $tgtorasid $tgtorauser $tgtorahome $tgtsgasize $tgtsgapct $tgtarchmode $tgtdiskgrp $tgtnodeip
   $UseScript, $localScript = Build-PrePostScript
 
    write-host "`nMounting $srcappname to $tgthostname as $tgtorasid...`n" 
@@ -279,17 +326,81 @@ function Mount-Ora-App (
       Write-Host "DEBUG: To execute: $cmd"
     } else {
       write-host "Executing: $cmd"
-      $out = Invoke-Expression $cmd | Out-Null      
+      Invoke-Expression $cmd 
     }
    write-host "`n"
+}     ### end of function
 
+##################################
+# Function: Remount-Ora-App
+#
+##################################
+function Remount-Ora-App (
+  [string]$srcappname,
+  [string]$srchostname,
+  [string]$tgthostname,
+  [string]$tgtorasid,
+  [string]$tgtorauser,
+  [string]$tgtorahome,
+  [string]$tgtsgasize,  
+  [string]$tgtsgapct,  
+  [string]$tgtarchmode,  
+  [string]$tgtdiskgrp,
+  [string]$tgtnodeip )
+
+{
+  $cmdline = $( reportmountedimages -c | where { $_.SourceApp -eq $srcappname -And $_.SourceHost -eq $srchostname } ).UnmountDeleteCommand
+  
+  if ($cmdline -ne $Null) {         ## ####  udstask expireimage -nowait -image Image_123  
+    Write-Host "`nRemounting the Oracle database $tgtorasid ..... `n"
+
+    $cmdline = $cmdline.Replace("expireimage","mountimage")
+    $cmdline = $cmdline.Replace("-nowait ","")
+
+    $hostid = $(udsinfo lshost -filtervalue "hostname=$tgthostname").id
+    $xmlstring = BuildOraXml $vdpversion $tgtorasid $tgtorauser $tgtorahome $tgtsgasize $tgtsgapct $tgtarchmode $tgtdiskgrp $tgtnodeip
+    $UseScript, $localScript = Build-PrePostScript
+
+    write-host "`nRemounting $srcappname database to $tgthostname as $tgtorasid...`n" 
+    if ( $UseScript ) {
+      $cmd = $cmdline + " -host " + $hostid + " -appaware " + $xmlstring + `
+        " -script " + [char]34 + $localScript + [char]34 + " -nowait | Out-Null" 
+    } else {
+      $cmd = $cmdline + " -host " + $hostid + " -appaware " + $xmlstring + " -nowait | Out-Null"
+    }
+   
+    if ($debug) {
+      Write-Host "DEBUG: To execute: $cmd"
+    } else {
+      write-host "Executing: $cmd" 
+      Invoke-Expression $cmd   ####  Job_1234 to unmount Image_1234 completed
+    }
+
+  } else {
+    write-host "There is nothing to remount "  
+  }
+}     ### end of function
+
+##################################
+# Function: BuildSqlXml
+#
+##################################
+function BuildSqlXml (
+  [string]$tgtappname,
+  [string]$tgtsqlinstance )
+{
+  $xmlstring = "-restoreoption " + [char]34 + ` 
+  "provisioningoptions=<provisioningoptions>" + "<sqlinstance>$tgtsqlinstance</sqlinstance>" + `
+  "<dbname>$tgtappname</dbname>" + "<recover>true</recover>" + `
+  "</provisioningoptions>,reprotect=false" + [char]34
+
+  return $xmlstring
 }     ### end of function
 
 ##################################
 # Function: Mount-Sql-App
 #
 ##################################
-
 function Mount-Sql-App ( 
   [string]$srcappname,
   [string]$srchostname,
@@ -297,14 +408,10 @@ function Mount-Sql-App (
   [string]$tgtappname,
   [string]$tgtsqlinstance )
 {
-
   $appid = $(reportapps | where-object { $_.HostName -eq $srchostname -and $_.AppName -eq $srcappname }).AppID
   $hostid = $(udsinfo lshost -filtervalue "hostname=$tgthostname").id
 
-  $xmlstring = "-restoreoption " + [char]34 + ` 
-       "provisioningoptions=<provisioningoptions>" + "<sqlinstance>$tgtsqlinstance</sqlinstance>" + `
-       "<dbname>$tgtappname</dbname>" + "<recover>true</recover>" + `
-       "</provisioningoptions>,reprotect=false" + [char]34
+  $xmlstring = BuildSqlXml $tgtappname $tgtsqlinstance
 
   $UseScript, $localScript = Build-PrePostScript
 
@@ -323,14 +430,55 @@ function Mount-Sql-App (
     $out = Invoke-Expression $cmd | Out-Null      
   }
    write-host "`n"
+}     ### end of function
 
+##################################
+# Function: Remount-Sql-App
+#
+##################################
+function Remount-Sql-App ( 
+  [string]$srcappname,
+  [string]$srchostname,
+  [string]$tgthostname,
+  [string]$tgtappname,
+  [string]$tgtsqlinstance )
+{
+  $cmdline = $( reportmountedimages -c | where { $_.SourceApp -eq $srcappname -And $_.SourceHost -eq $srchostname } ).UnmountDeleteCommand
+  
+  if ($cmdline -ne $Null) {         ## ####  udstask expireimage -nowait -image Image_123  
+    Write-Host "`nRemounting the SQL database $tgtappname ..... `n"
+
+    $cmdline = $cmdline.Replace("expireimage","mountimage")
+    $cmdline = $cmdline.Replace("-nowait ","")
+
+    $xmlstring = BuildSqlXml $tgtappname $tgtsqlinstance
+
+    $hostid = $(udsinfo lshost -filtervalue "hostname=$tgthostname").id
+  
+    $UseScript, $localScript = Build-PrePostScript
+  
+    write-host "`nRemounting $srcappname database to $tgthostname as $tgtappname...`n" 
+    if ( $UseScript ) {
+       $cmd = $cmdline + " -host " + $hostid + " -appaware " + $xmlstring + `
+          " -script " + [char]34 + $localScript + [char]34 + " -nowait | Out-Null" 
+    } else {
+       $cmd = $cmdline + " -host " + $hostid + " -appaware " + $xmlstring + " -nowait | Out-Null"
+    }
+
+    if ($debug) {
+      Write-Host "DEBUG: To execute: $cmd"
+    } else {
+      write-host "Executing: $cmd"
+      $out = Invoke-Expression $cmd | Out-Null      
+    }
+    write-host "`n"
+  } #### end main if
 }     ### end of function
 
 ##################################
 # Function: Report-AppUsage
 #
 ##################################
-
 function Report-AppUsage ( 
   [string]$jobid,
   [string]$srcappname,
@@ -354,18 +502,24 @@ function Report-AppUsage (
 
 }     ### end of function
 
-
 ##############################
 #
 #  M A I N    B O D Y
 #
 ##############################
 
-$ManageDBversion="1.0"
-
 if (! $action) {
     Display-Usage
     exit
+}
+
+if ( ! ($ActionList -contains $action) ) {
+  Write-Host "`n$action is not a valid action after the -action argument !! "
+  $strlist = $Null
+  $ActionList | ForEach-Object { if ($_ -eq $ActionList[-1]) { $strlist += $_ + " " } else { $strlist += $_ + " , " } }
+  Write-Host "Valid action supported: $strlist`n"
+  Display-Usage
+  exit
 }
 
 if ((! $paramfile) -And ($action -ne "genparamfile")) {
@@ -391,7 +545,6 @@ if (Test-Path $paramfile) {
 
   $tgt_orasid = $tgt_appname  
 }
-
 
 ## config : to create a password file ($vdppasswordfile in the paramfile) using the values stored in parameterfile (-paramfile) or entered values
 if ($action -eq "config") {
@@ -455,30 +608,47 @@ if ($connectattempt -ne "Login Successful!") {
   exit
   }
 
-write-host "`nConnected to $vdphost"
-
-if ($action -ne "provision") {
-  Unmount-App $src_appname $src_hostname $tgt_appname $tgt_hostname $tgt_force  
+$vdpversion = $(udsinfo lsversion | where-object { $_.component -eq "Sky" }).version
+if ($vdpversion -eq $null) {
+  $vdpversion="9.0"
+  write-host "Unable to find out the version when connecting to $vdphost . Setting it to $vdpversion "
 }
 
-if ($action -ne "cleanup") {
-  if ( $oracle_app ) {
-    
+write-host "`nConnected to VDP appliance $vdphost , running version $vdpversion "
+
+if (($action -eq "cleanup") -Or ($action -eq "refresh")) {
+  Unmount-App $src_appname $src_hostname $tgt_appname $tgt_hostname $tgt_force $True
+  }   ### end of if-action
+
+if (($action -eq "provision") -Or ($action -eq "refresh")) {  
+  if ( $oracle_app ) {  
     Mount-Ora-App $src_appname $src_hostname $tgt_hostname $tgt_orasid $tgt_orauser $tgt_orahome $tgt_sgasize `
       $tgt_sgapct $tgt_archmode $tgt_diskgrp $tgt_asmracnodelist
-  
   } else {
-
     Mount-Sql-App $src_appname $src_hostname $tgt_hostname $tgt_appname $tgt_sqlinstance  
-  }  
-  
-  if (! $debug) {
+    }  
+  }  ### end of if-action
+
+if ($action -eq "remount") {
+  if ( $oracle_app ) {
+      Remount-Ora-App $src_appname $src_hostname $tgt_hostname $tgt_orasid $tgt_orauser $tgt_orahome $tgt_sgasize `
+      $tgt_sgapct $tgt_archmode $tgt_diskgrp $tgt_asmracnodelist
+    }
+  else {
+      Remount-Sql-App $src_appname $src_hostname $tgt_hostname $tgt_appname $tgt_sqlinstance 
+    }
+  }   ### end of if-action
+    
+if (($action -eq "provision") -Or ($action -eq "refresh") -Or ($action -eq "remount")) {  
+	if (! $debug) {
     $job_id = Monitor-Mount $src_appname $src_hostname $tgt_hostname
-
     Report-AppUsage $job_id $src_appname $src_hostname $tgt_hostname $tgt_orasid    
-  }
-
-}
+    }
+	}
+	
+if ($action -eq "unmount") {
+    Unmount-App $src_appname $src_hostname $tgt_appname $tgt_hostname $tgt_force $False
+  }   ### end of if-action
 
 Disconnect-Act
 exit
