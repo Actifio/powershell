@@ -62,7 +62,7 @@ Param
 )  ### Param
 
 $ManageDBversion = "1.1"
-$ActionList =@("config","cleanup","refresh","provision","unmount","remount","bookmark","rewind")
+$ActionList =@("config","cleanup","refresh","provision","unmount","remount","bookmark","rewind", "genparamfile")
 
 ##################################
 # Function: Display-Usage
