@@ -163,7 +163,23 @@ if ($download) {
 }
 
 if ($Install) {
-  Install-ActPowerCLI $Version $Software
+  $PSversion = $($host.version).major
+  if ($PSversion -le 3) {
+    Write-Host "The minimal version of PowerShell for ActPowerCLI is 3.0 and above. Current version is $PSVersion ."
+    Write-Host "Will not install ActPowerCLI. "
+    exit
+  } 
+  ## source: https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed#to-find-net-framework-versions-by-querying-the-registry-in-code-net-framework-45-and-later
+  ## 
+  ## 394802 = .NET Framework 4.6.2
+  ## 378389 = .NET Framework 4.5
+  if ( (Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 378388 ) {
+    Install-ActPowerCLI $Version $Software
+    } else {
+      Write-Host "The minimal .NET Framework version required for ActPowerCLI is 4.5 and above. "
+      Write-Host "Will not install ActPowerCLI. "    
+      exit
+    }
 }
 
 exit
