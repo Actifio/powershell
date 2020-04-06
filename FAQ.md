@@ -194,10 +194,18 @@ To resolve this you need to upgrade to version 10.0.0.227 of ActPowerCLI or high
 
 ### I am getting file not found errors
 
-If you installed two different versions of ActPowerCLI in two different locations, you will get this error.  For instance you have modules in both:
+After installing a newer version of the module, you may start getting errors like these:
 
-c:\windows\system32\WindowsPowerShell\v1.0\modules
-and
-c:\Program Files\WindowsPowerShell\Modules
+```ActPowerCLI.ArgumentCompleters.ps1' is not recognized
+as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was
+included, verify that the path is correct and try again.
+```
 
-Delete one module to resolve this error.   You don't need it in two places.
+This happens if you have installed two different versions of ActPowerCLI in two different locations.  For instance you have modules in more than one of the following and some of them are different versions:
+
+C:\Program Files (x86)\WindowsPowerShell\Modules
+C:\Program Files\WindowsPowerShell\Modules
+C:\Windows\System32\WindowsPowerShell\v1.0\Modules
+C:\Windows\SysWOW64\WindowsPowerShell\v1.0\Modules
+
+Ideally delete all copies and install just the latest to a single location.
