@@ -293,22 +293,22 @@ function Show-SqlObject-Info ()
   }
 
   if ($False -eq $(($thisObject).SqlInstalled)) {
-    write-Host "            SQL Server SW: Not Installed "
+    write-Host "            SQL Server SW: Not Installed " 
   } else {
-    write-Host "            SQL Server SQ: Installed "
+    write-Host "            SQL Server SW: Installed "
   }
   if ($null -eq  $(($thisObject).SqlInstances)) {
     write-Host "             SQL Instance: No Instances Created "
   } else {
     $(($thisObject).SqlInstances) | ForEach-Object { 
-      write-Host "            SQL Instance: $_.InstanceName "  
+    write-Host "             SQL Instance: $_.InstanceName "  
       }
   }
   if ($null -eq  $(($thisObject).VssWriters)) {
     write-Host "              VSS Writers: Not Installed "
   } else {
     $(($thisObject).VssWriters) | ForEach-Object { 
-      write-Host "    VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
+    write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
       }
   }
   write-Host "`n---------------------------------------------------------------------------`n"
