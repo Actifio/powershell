@@ -258,7 +258,7 @@ function Get-TgtVdp-Info (
 ##################################
 function Show-Usage ()
 {
-    write-host "Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ] `n"
+    write-host "Usage: .\OnboardSql.ps1 [ -srcsql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ] `n"
     write-host " get-help .\OnboardSql.ps1 -examples"
     write-host " get-help .\OnboardSql.ps1 -detailed"
     write-host " get-help .\OnboardSql.ps1 -full"    
@@ -324,14 +324,6 @@ function Show-SqlObject-Info ()
 if ($false -eq $srcsql.IsPresent -And $false -eq $tgtvdp.IsPresent) {
   Show-Usage
   exit
-}
-
-if ($ToExec.IsPresent) {
-  Write-Host "ToExec value is $ToExec"
-  $WillExec = $True
-} else {
-  Write-Host "Missing ToExec value is $ToExec"
-  $WillExec = $False
 }
 
 ## Create an object based on the PSObject class
