@@ -78,7 +78,9 @@ function Get-SrcWin-Info ()
 # Download the ActPowerCLI from GitHub
 # 
 ##################################
-function Get-SrcSql-Info ()
+function Get-SrcSql-Info (
+  [string]$VdpIp
+)
 {
   Write-Host "I will be gathering information on Sql Server Host. "
 
@@ -129,8 +131,13 @@ function Get-SrcSql-Info ()
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
 
-  $Pingable = Test-Connection $VdpIP -Count 1 -Quiet
-  $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable  
+  if ($VdpIp -ne $null -And $VdpIp -ne "") {
+    $Pingable = Test-Connection $VdpIP -Count 1 -Quiet
+    $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable    
+  } else {
+    $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
+  }
+
 
   $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
   Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
@@ -278,7 +285,9 @@ function Show-WinObject-Info ()
 # Function: Show-SqlObject-Info
 #
 ##################################
-function Show-SqlObject-Info ()
+function Show-SqlObject-Info (
+  [string]$VdpIp
+)
 {
   write-Host "          Domain Firewall: $(($thisObject).DomainFirewall) "
   write-Host "         Private Firewall: $(($thisObject).PrivateFirewall) "
@@ -286,10 +295,12 @@ function Show-SqlObject-Info ()
   write-Host "   iSCSI FireWall Inbound: $(($thisObject).iSCSIfwInStatus) "
   write-Host "  iSCSI FireWall Outbound: $(($thisObject).iSCSIfwOutStatus)`n"  
 
-  if ( Test-Connection $VdpIp -Count 2 -Quiet ) {
-    write-Host "Actifio Vdp Ip Pingable  : True "
-  } else {
-    write-Host "Actifio Vdp Ip Pingable  : False "
+  if ($VdpIp -ne $null -And $VdpIp -ne "") {
+    if ( Test-Connection $VdpIp -Count 2 -Quiet ) {
+      write-Host "  Actifio Vdp Ip Pingable: True "
+    } else {
+      write-Host "  Actifio Vdp Ip Pingable: False "
+    }    
   }
 
   if ($False -eq $(($thisObject).SqlInstalled)) {
@@ -331,17 +342,12 @@ $thisObject = New-Object -TypeName psobject
 
 Get-SrcWin-Info
 
-if ($null -eq $VdpIp -Or "" -eq $VdpIp) {
-  $VdpIp="172.27.24.96"
-  $VdpPassword="12!pass345"
-}
-
 if ($true -eq $srcsql.IsPresent) {
-  Get-SrcSql-Info
+  Get-SrcSql-Info $VdpIp
 }
 
 Show-WinObject-Info
-Show-SqlObject-Info
+Show-SqlObject-Info $VdpIp
 
 if ($true -eq $tgtvdp.IsPresent) {
   Get-TgtVdp-Info $VdpIp $VdpUser $VdpPassword $ToExec.IsPresent
