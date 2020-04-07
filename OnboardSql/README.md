@@ -1,0 +1,182 @@
+## What does this do?
+
+This is a powershell script that helps on-boarding a SQL Server to the VDP appliance. This script is to be run on the source SQL server. It performs a discovery of the environment and reports on all the SQL Server prerequisites for VDP appliance.
+
+## How does this work?
+
+It relies on two switches i.e. -srcsql or -tgtvdp . Either switch or both switches need to be specified when using the script.
+
+## Usage
+
+The following are options supported:
+* _-srcsql_  This wll performs a discovery on the components required on the SQL Server i.e. iSCSI services, firewalls, and etc.
+* _-tgtvdp_  This wll performs all checks on the VDP appliance i.e. connectivity from VDP to SQL Server host, registering the SQL server host, and etc
+* _-ToExec_  This registers the SQL Server with the host and performs an iSCSI test.
+
+## Sample output:
+The following are sample of the different operations supported:
+
+Getting help on usage:
+```
+PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1
+Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ]
+
+ get-help .\OnboardSql.ps1 -examples
+ get-help .\OnboardSql.ps1 -detailed
+ get-help .\OnboardSql.ps1 -full
+```
+
+Perform a test run on application discovery on the SQL Server and VDP appliance:
+```
+PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret
+Missing ToExec value is False
+I will be gathering information on Windows Host.
+I will be gathering information on Sql Server Host.
+
+--------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
+
+            Computer Name: WIN2K12R2
+               IP Address: 10.10.10.55
+                     FQDN: Win2k12R2.acme.com
+                       OS: Microsoft Windows Server 2012 R2 Datacenter
+
+---------------------------------------------------------------------------
+
+          Domain Firewall: False
+         Private Firewall: False
+          Public Firewall: False
+   iSCSI FireWall Inbound: False
+  iSCSI FireWall Outbound: False
+
+Actifio Vdp Ip Pingable  : True
+            SQL Server SW: Not Installed
+             SQL Instance: No Instances Created
+              VSS Writers: Not Installed
+
+---------------------------------------------------------------------------
+
+I will be gathering information on Vdp Appliance.
+
+--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 5106 (connector port)
+> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 5106
+Passed: Vdp is able to communicate with the SQL Server 10.10.10.55 on port 5106
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 443
+> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 443
+---> Failed: Vdp unable to communicate with the SQL Server 10.10.10.55 on port 443
+
+> udsinfo lsconfiguredinterface
+The network interface on the Vdp appliance = 10.10.10.1
+
+WIN2K12R2 is already defined earlier in the Vdp appliance . No registration required!
+
+Performing an application discovery on WIN2K12R2 and updating the information in Vdp appliance 10.10.10.1
+
+> udstask appdiscovery -host 19898905
+
+Performing an iSCSI test on WIN2K12R2 from Vdp appliance 10.10.10.1 (optional) :
+
+> udstask iscsitest -host 19898905
+
+Listing all applications discovered on WIN2K12R2 stored in Vdp appliance 10.10.10.1 :
+
+> udsinfo lsapplication | where { $_.HostId -eq 19898905 } | Select-Object AppName, AppType
+
+---------------------------------------------------------------------------
+
+Success!
+```
+
+Perform an actual run on application discovery on the SQL Server and VDP appliance (use the -TopExec switch):
+```
+PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret -ToExec
+ToExec value is True
+I will be gathering information on Windows Host.
+I will be gathering information on Sql Server Host.
+
+--------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
+
+            Computer Name: WIN2K12R2
+               IP Address: 10.10.10.55
+                     FQDN: Win2k12R2.acme.com
+                       OS: Microsoft Windows Server 2012 R2 Datacenter
+
+---------------------------------------------------------------------------
+
+          Domain Firewall: False
+         Private Firewall: False
+          Public Firewall: False
+   iSCSI FireWall Inbound: False
+  iSCSI FireWall Outbound: False
+
+Actifio Vdp Ip Pingable  : True
+            SQL Server SW: Not Installed
+             SQL Instance: No Instances Created
+              VSS Writers: Not Installed
+
+---------------------------------------------------------------------------
+
+I will be gathering information on Vdp Appliance.
+
+--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 5106 (connector port)
+> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 5106
+Passed: Vdp is able to communicate with the SQL Server 10.10.10.55 on port 5106
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 443
+> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 443
+---> Failed: Vdp unable to communicate with the SQL Server 10.10.10.55 on port 443
+
+> udsinfo lsconfiguredinterface
+The network interface on the Vdp appliance = 10.10.10.1
+
+WIN2K12R2 is already defined earlier in the Vdp appliance . No registration required!
+
+Performing an application discovery on WIN2K12R2 and updating the information in Vdp appliance 10.10.10.1
+
+> udstask appdiscovery -host 19898905
+
+new     : false
+appname : true
+missing : true
+exists  : false
+id      : 19898932 Win2k12R2.acme.com
+
+new     : false
+appname : false
+missing : true
+exists  : true
+id      : 21562741 C:\
+
+Performing an iSCSI test on WIN2K12R2 from Vdp appliance 10.10.10.1 (optional) :
+
+> udstask iscsitest -host 19898905
+iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
+Status    : Passed
+Test      : Host iSCSI initiator installed and configured
+
+iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
+Status    : Passed
+Test      : Appliance has valid IQN
+
+iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
+Status    : Passed
+Test      : Host has logged into the Appliance iSCSI target
+
+iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
+Status    : Passed
+Test      : Mapping disk from Appliance to host
+
+Listing all applications discovered on WIN2K12R2 stored in Vdp appliance 10.10.10.1 :
+
+> udsinfo lsapplication | where { $_.HostId -eq 19898905 } | Select-Object AppName, AppType
+appname : C:\
+apptype : FileSystem
+
+---------------------------------------------------------------------------
+
+Success!
+```
