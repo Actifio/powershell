@@ -1,6 +1,6 @@
 ## What does this do?
 
-This is a powershell script that helps on-boarding a SQL Server to the VDP appliance. This script is to be run on the source SQL server. It performs a discovery of the environment and reports on all the SQL Server prerequisites for VDP appliance.
+This is a powershell script that helps on-board a SQL Server to the VDP appliance. This script is to be run on the source SQL server. It can perform a discovery of the both the SQL Windows server and VDP appliance environment. After the discovery process, it will report on all the SQL Server prerequisites for VDP appliance.
 
 ## How does this work?
 
