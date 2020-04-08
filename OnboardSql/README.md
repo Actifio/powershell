@@ -180,3 +180,128 @@ apptype : FileSystem
 
 Success!
 ```
+
+Perform a test run on application discovery on the SQL Server with SQL Instance and software installed and VDP appliance:
+```
+PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword 12!pass345
+I will be gathering information on Windows Host.
+I will be gathering information on Sql Server Host.
+
+
+--------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
+
+            Computer Name: DEMO-SQL-2
+               IP Address: 10.10.10.22
+                     FQDN: demo-sql-2.acme.com
+                       OS: Microsoft Windows Server 2019 Standard
+
+---------------------------------------------------------------------------
+
+          Domain Firewall: False
+         Private Firewall: False
+          Public Firewall: False
+   iSCSI FireWall Inbound: False
+  iSCSI FireWall Outbound: False
+
+  Actifio Vdp Ip Pingable: True
+            SQL Server SW: Installed
+             SQL Instance: MSSQLSERVER.InstanceName
+     VSS Writer [ State ]: Task Scheduler Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: VSS Metadata Store Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Performance Counters Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: System Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: SqlServerWriter [ Stable ] ( No error )
+     VSS Writer [ State ]: WMI Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Shadow Copy Optimization Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Registry Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: ASR Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: COM+ REGDB Writer [ Stable ] ( No error )
+
+---------------------------------------------------------------------------
+
+I will be gathering information on Vdp Appliance.
+
+--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.22 on port 5106 (connector port)
+> udstask testconnection -type tcptest -targetip 10.10.10.22 -targetport 5106
+Passed: Vdp is able to communicate with the SQL Server 10.10.10.22 on port 5106
+
+Testing the connection from Vdp appliance to SQL Server 10.10.10.22 on port 443
+> udstask testconnection -type tcptest -targetip 10.10.10.22 -targetport 443
+---> Failed: Vdp unable to communicate with the SQL Server 10.10.10.22 on port 443
+
+> udsinfo lsconfiguredinterface
+The network interface on the Vdp appliance = 10.10.10.1
+
+Registering the DEMO-SQL-2 with Actifio Vdp appliance 10.10.10.1
+
+> udstask mkhost -hostname DEMO-SQL-2 -ipaddress 10.10.10.22 -type generic -appliance 10.10.10.1
+
+Updating the description for the DEMO-SQL-2 entry in Actifio Vdp appliance 10.10.10.1
+
+> udstask chhost 19095901 -description "Added by OnboardSql script"
+
+Performing an application discovery on DEMO-SQL-2 and updating the information in Vdp appliance 10.10.10.1
+
+> udstask appdiscovery -host 19095901
+
+Performing an iSCSI test on DEMO-SQL-2 from Vdp appliance 10.10.10.1 (optional) :
+
+> udstask iscsitest -host 19095901
+
+Listing all applications discovered on DEMO-SQL-2 stored in Vdp appliance 10.10.10.1 :
+
+> udsinfo lsapplication | where { $_.HostId -eq 19095901 } | Select-Object AppName, AppType
+
+---------------------------------------------------------------------------
+
+InstanceName
+------------
+MSSQLSERVER
+Success!
+```
+
+Perform a test run on application discovery on the SQL Server with SQL Instance and software installed:
+```
+PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql
+I will be gathering information on Windows Host.
+I will be gathering information on Sql Server Host.
+
+--------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
+
+            Computer Name: DEMO-SQL-2
+               IP Address: 10.10.10.22
+                     FQDN: demo-sql-2.acme.com
+                       OS: Microsoft Windows Server 2019 Standard
+
+
+---------------------------------------------------------------------------
+
+          Domain Firewall: False
+         Private Firewall: False
+          Public Firewall: False
+   iSCSI FireWall Inbound: False
+  iSCSI FireWall Outbound: False
+
+            SQL Server SW: Installed
+             SQL Instance: MSSQLSERVER.InstanceName
+     VSS Writer [ State ]: Task Scheduler Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: VSS Metadata Store Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Performance Counters Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: System Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: SqlServerWriter [ Stable ] ( No error )
+     VSS Writer [ State ]: WMI Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Registry Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: ASR Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Shadow Copy Optimization Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: COM+ REGDB Writer [ Stable ] ( No error )
+
+---------------------------------------------------------------------------
+
+InstanceName
+------------
+MSSQLSERVER
+
+PS C:\Users\johndoe\Desktop>
+```
