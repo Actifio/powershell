@@ -16,7 +16,7 @@ The following are options supported:
 ## Sample output:
 The following are sample of the different operations supported:
 
-Getting help on usage:
+**Getting help on usage:**
 ```
 PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1
 Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ]
@@ -26,7 +26,7 @@ Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appl
  get-help .\OnboardSql.ps1 -full
 ```
 
-Perform a test run on application discovery on the SQL Server and VDP appliance:
+**Perform a test run on application discovery on the SQL Server and VDP appliance:**
 ```
 PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret
 Missing ToExec value is False
@@ -89,7 +89,7 @@ Listing all applications discovered on WIN2K12R2 stored in Vdp appliance 10.10.1
 Success!
 ```
 
-Perform an actual run on application discovery on the SQL Server and VDP appliance (use the -TopExec switch):
+**Perform an actual run on application discovery on the SQL Server and VDP appliance (use the -TopExec switch):**
 ```
 PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret -ToExec
 ToExec value is True
@@ -181,12 +181,11 @@ apptype : FileSystem
 Success!
 ```
 
-Perform a test run on application discovery on the SQL Server with SQL Instance and software installed and VDP appliance:
+**Perform a test run on application discovery on the SQL Server with SQL Instance and software installed and VDP appliance:**
 ```
 PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword 12!pass345
 I will be gathering information on Windows Host.
 I will be gathering information on Sql Server Host.
-
 
 --------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
 
@@ -262,7 +261,7 @@ MSSQLSERVER
 Success!
 ```
 
-Perform a test run on application discovery on the SQL Server with SQL Instance and software installed:
+**Perform a test run on application discovery on the SQL Server with SQL Instance and software installed:**
 ```
 PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql
 I will be gathering information on Windows Host.
