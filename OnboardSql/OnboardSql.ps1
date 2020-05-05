@@ -169,7 +169,7 @@ function Get-TgtVdp-Info (
   
   if  (! ( Test-Connection $VdpIp -Count 2 -Quiet )) {
     Write-Host "Unable to ping / reach $VdpIp .. "
-    exit 1
+    # exit 1
   }
 
   ## Ensure that the ActPowerCLI module is imported
@@ -215,7 +215,7 @@ function Get-TgtVdp-Info (
   if ($Null -eq $HostId) {
 
     write-host "`nRegistering the $(($thisObject).ComputerName) with Actifio Vdp appliance $VdpIp `n"
-    $cmd = "udstask mkhost -hostname " + $(($thisObject).ComputerName) + " -ipaddress " + $(($thisObject).IPAddress) + " -type generic -appliance " + $VdpIp
+    $cmd = "udstask mkhost -hostname " + $(($thisObject).ComputerName) + " -ipaddress " + $(($thisObject).IPAddress) + " -type generic "
     write-host "> $cmd"
     if ($true -eq $WillExec) {
       Invoke-Expression $cmd
