@@ -223,7 +223,7 @@ function Get-TgtVdp-Info (
 
     $HostId = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
     write-host "`nUpdating the description for the $(($thisObject).ComputerName) entry in Actifio Vdp appliance $VdpIp `n"
-    $cmd = "udstask chhost " + $hostid + " -description " + [char]34 + "Added by OnboardSql script" + [char]34
+    $cmd = "udstask chhost -description " + [char]34 + "Added by OnboardSql script" + [char]34 + $hostid
     write-host "> $cmd"
     if ($true -eq $WillExec) {
       Invoke-Expression $cmd
