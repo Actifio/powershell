@@ -211,4 +211,9 @@ C:\Windows\System32\WindowsPowerShell\v1.0\Modules
 C:\Windows\SysWOW64\WindowsPowerShell\v1.0\Modules
 ```
 
+You can also use this command to try and find all the versions:
+```
+(Get-Module -ListAvailable ActPowerCLI).path
+```
+
 Ideally delete all copies and install just the latest to a single location.
