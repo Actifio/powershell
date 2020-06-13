@@ -182,7 +182,7 @@ If we export the certificate using a webbrowser, we could import using the Certi
 
 ### I am trying to use PWSH on Linux or Mac OS
 
-We currently don't support these OSs.   While the module will load ok, you cannot connect with SSL.  It may be possible we will support this in a future version of our module.  
+For a fully PowerShell 7 compatible module, please look here:  https://github.com/Actifio/ActPowerCLI-PS7
 
 ### I am getting a 7.0.0 version error 
 
