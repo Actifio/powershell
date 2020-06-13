@@ -1,7 +1,7 @@
-# Actifio PowerShell integration
+# Actifio Windows PowerShell integration
 
-
-These instructions are for a PowerShell Module that is used to manage Actifio Appliances
+These instructions are for a Windows PowerShell Module that is used to manage Actifio Appliances.
+For a fully PowerShell 7 compatible module, please look here:  https://github.com/Actifio/ActPowerCLI-PS7
 
 ### 1)   Ensure PowerShell 3.0 and .NET 4.5 are installed.
 
@@ -21,9 +21,11 @@ $PSVersionTable.CLRVersion
 
 Note that the second digit can be misleading.  For instance 4.0.30319.42000 is actually .NET 4.6
 
-#### PowerShell Core
+#### PowerShell 7  (once known as Core)
 
-PowerShell Core (as opposed to Windows PowerShell) has been tested on Windows.   At this time the only known issue is that SSL Certificates need to be manually imported before using PowerShell Core.
+PowerShell 6+ (as opposed to Windows PowerShell) has been tested on Windows.   At this time the only known issue is that SSL Certificates need to be manually imported before using PowerShell Core.
+
+For a fully PowerShell 7 compatible module, please look here:  https://github.com/Actifio/ActPowerCLI-PS7
 
 ### 2)   Confirm if the actpowercli module is already installed
 
