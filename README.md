@@ -41,16 +41,37 @@ Find out where we should place the Windows ActPowerCLI PowerShell modules in the
 Get-ChildItem Env:\PSModulePath | format-list
 ```
 
-### 4)  Copy actpowercli into place
+### 4)  Use the installer
 
-1. Download the actpowercli zip file but don't unzip it
-1. Right select the downloaded zip file and choose properties
-1. At the bottom of the properties window select the Unblock button next to the message: *This file came from another computer and might be blocked to help protect this computer*
-1. Unzip the ActPOWERCLI-10.0.0.312.zip software and copy the ActPowerCLI folder inside it to a relevant directory.  For example:
+1.  From GitHub, use the download button to download the ActPowerCLI-10.0.0.709.zip file
+1.  Copy the Zip file to the server where you want to install it
+1.  Right select on the zip file, choose  Properties and then use the Unblock button next to the message:  "This file came from another computer and might be blocked to help protect  your computer."
+1.  Now right select and use Extract All to extract the contents of the zip file to a folder.  It doesn't matter where you put the folder but you will need to know where it is!  
+1.  Now start Windows PowerShell and change directory to the directory that should contain our module files.   
+1.  There is an installer, Install-ActPowerCLI.ps1   So we need tp run that with ./Install-ActPowerCLI.ps1
+If you find multiple installs, we strongly recommend you delete them all and run the installer again to have just one install.
+
+
+If the install fails with something like this:
 ```
-c:\windows\system32\windowspowershell\v1.0\modules 
+PS C:\Users\av\Downloads\ActPowerCLI-10.0.0.709\ActPowerCLI> .\Install-ActPowerCLI.ps1
+.\Install-ActPowerCLI.ps1 : File C:\Users\av\Downloads\ActPowerCLI-10.0.0.709\ActPowerCLI\Install-ActPowerCLI.ps1
+cannot be loaded. The file C:\Users\av\Downloads\ActPowerCLI-10.0.0.709\ActPowerCLI\Install-ActPowerCLI.ps1 is not
+digitally signed. You cannot run this script on the current system. For more information about running scripts and
+setting execution policy, see about_Execution_Policies at http://go.microsoft.com/fwlink/?LinkID=135170.
+At line:1 char:1
++ .\Install-ActPowerCLI.ps1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : SecurityError: (:) [], PSSecurityException
+    + FullyQualifiedErrorId : UnauthorizedAccess
 ```
-Note!   If PowerShell is installed as a 32 bit application, then use the path in this folder: C:\program files (x86)
+Then use this command to allow Windows PowerShell to run the script:
+```
+powershell -executionpolicy unrestricted
+```
+Then re-run the installer.  The installer will unblock all the files.
+
+
 
 ### 5)  Import actpowercli
 
