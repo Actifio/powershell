@@ -89,7 +89,7 @@ https://github.com/Actifio/powershell/blob/master/FAQ.md
 
 ### 3) - 6) Automating the installation process
 
-To automate steps 3-6 listed above, please refer to https://github.com/Actifio/powershell/tree/master/setup-actpowercli
+For another way to automate steps 3-6 listed above, please refer to https://github.com/Actifio/powershell/tree/master/AutoInstallActCLI
 
 ### 7)  Get some help
 List the available commands in the ActPowerCLI module:
