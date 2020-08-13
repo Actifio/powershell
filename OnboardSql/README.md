@@ -6,6 +6,14 @@ This is a powershell script that helps on-board a SQL Server to the VDP applianc
 
 It relies on two switches i.e. -srcsql or -tgtvdp . Either switch or both switches need to be specified when using the script.
 
+## Supported PowerShell versions
+
+This script has been tested with PowerShell 4, 5 and 7.  Note that to run this script on PowerShell 7,  you also need PowerShell 5 to be installed.  This is because PowerShell 7 needs to call some PowerShell 5 functions.  Also note that the firewall status values shown in PowerShell 7 may be numbers rather than words.  They translate as follows:
+
+* 0 = False (not enabled)
+* 1 = True (enabled)
+* 2 = False or NotConfigured (not enabled)
+
 ## Usage
 
 The following are options supported:
