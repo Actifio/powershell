@@ -18,19 +18,19 @@
 
     To get help on how to use the script
 
-    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1-vdpuser cliuser -vdppasword TopSecret 
+    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser cliuser -vdppasword TopSecret 
 
     To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret). 
 
-    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1-vdpuser cliuser -vdppasword TopSecret -ToExec 
+    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser cliuser -vdppasword TopSecret -ToExec 
 
     To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret). Also register the source SQL server with VDP appliance.
 
 .NOTES   
     Name: OnboardSql.ps1
-    Author: Michael Chew
+    Author: Michael Chew.  Additions by Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 7-April-2020
+    LastUpdated: 14-Aug-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -72,6 +72,35 @@ function Get-SrcWin-Info ()
   $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
 }
 
+function Show-WinObject-DiskInfo ()
+{
+    $volumedata = Get-WmiObject -Class win32_volume  -Filter "(DriveType = '3')" 
+    $volumedata = $volumedata | Where-Object label -ne "System Reserved" | sort-object name
+    $vssarray = @()
+    # Check if that drive letter has shadowstorage
+    foreach ($drive in $volumedata) {
+        $deviceID = $drive.deviceID
+        # Clean up the deviceID variable so it will be able to match results from gwmi win32_shadowstorage
+        $deviceID = $deviceID.TrimStart("\\?\")
+        $deviceID = "Win32_Volume.DeviceID=`"\\\\?\\" + $deviceID + "\`""
+        $vssgrab = Get-WmiObject -Class win32_shadowstorage | Where-Object {$_.Volume -eq $deviceID}
+        $diffname = (Get-WmiObject -Class win32_volume | Where-Object {$_.__RELPATH -eq $vssgrab.DiffVolume}).Name
+        $vssarray += [pscustomobject]@{
+            name = $drive.Name
+            label = $drive.Label
+            FreeSpacePerc = [math]::round($drive.FreeSpace/$drive.Capacity*100, 2)
+            FreeSpaceGiB = [math]::round($drive.FreeSpace/1GB, 2)
+            CapacityGiB = [math]::round($drive.Capacity/1GB, 2)
+            vssdiff = $diffname
+            vss_usedspaceGiB = [math]::round($vssgrab.UsedSpace/1GB, 2)
+            vss_allocspaceGiB = [math]::round($vssgrab.AllocatedSpace/1GB, 2)
+            vss_maxspaceGiB = [math]::round($vssgrab.MaxSpace/1GB, 2)
+        }
+    }
+    $vssarray | Format-Table *
+}
+
+
 ##################################
 # Function: Get-SrcSql-Info
 #
@@ -91,7 +120,7 @@ function Get-SrcSql-Info (
   ## Get the status of firewall for iSCSI service : "Running", "Stopped"
   $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
 
-  Get-NetFirewallProfile | select Name, Enabled | ForEach-Object { 
+  Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
     $Label = $_.Name + "Firewall"
     $thisObject | Add-Member -MemberType NoteProperty -Name $Label  -Value ($_.Enabled).ToString()
   }
@@ -281,6 +310,7 @@ function Show-WinObject-Info ()
   write-Host "`n---------------------------------------------------------------------------`n"
 }
 
+
 ##################################
 # Function: Show-SqlObject-Info
 #
@@ -340,6 +370,7 @@ if ($false -eq $srcsql.IsPresent -And $false -eq $tgtvdp.IsPresent) {
 ## Create an object based on the PSObject class
 $thisObject = New-Object -TypeName psobject 
 
+
 Get-SrcWin-Info
 
 if ($true -eq $srcsql.IsPresent) {
@@ -348,6 +379,7 @@ if ($true -eq $srcsql.IsPresent) {
 
 Show-WinObject-Info
 Show-SqlObject-Info $VdpIp
+Show-WinObject-DiskInfo
 
 if ($true -eq $tgtvdp.IsPresent) {
   Get-TgtVdp-Info $VdpIp $VdpUser $VdpPassword $ToExec.IsPresent
