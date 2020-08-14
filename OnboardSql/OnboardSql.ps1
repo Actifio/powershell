@@ -83,7 +83,7 @@ function Show-WinObject-DiskInfo ()
         # Clean up the deviceID variable so it will be able to match results from gwmi win32_shadowstorage
         $deviceID = $deviceID.TrimStart("\\?\")
         $deviceID = "Win32_Volume.DeviceID=`"\\\\?\\" + $deviceID + "\`""
-        $vssgrab = Get-WmiObject -Class win32_shadowstorage | Where-Object {$_.Volume -eq $deviceID}
+        $vssgrab = Get-WmiObject -Class win32_shadowstorage -ErrorAction SilentlyContinue | Where-Object {$_.Volume -eq $deviceID}
         $diffname = (Get-WmiObject -Class win32_volume | Where-Object {$_.__RELPATH -eq $vssgrab.DiffVolume}).Name
         $vssarray += [pscustomobject]@{
             name = $drive.Name
