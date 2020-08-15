@@ -3,6 +3,7 @@
 ## Purpose: Script to automate the onboarding of the Sql Server.
 #
 # Version 1.0 Initial Release
+# Version 1.1 Add disk info, improve script
 #
 <#   
 .SYNOPSIS   
@@ -28,9 +29,9 @@
 
 .NOTES   
     Name: OnboardSql.ps1
-    Author: Michael Chew.  Additions by Anthony Vandewerdt
+    Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 14-Aug-2020
+    LastUpdated: 15-Aug-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -46,11 +47,11 @@ Param
   [string]$vdppassword = ""   
 )  ### Param
 
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.1"
 
 function Get-SrcWin-Info ()
 {
-  Write-Host "I will be gathering information on Windows Host. "
+  Write-Host "Gathering information on Windows Host. "
 
   ## Find the Windows version on the source Windows Server
   $WinVer = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
@@ -72,20 +73,22 @@ function Get-SrcWin-Info ()
   $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
 }
 
-function Show-WinObject-DiskInfo ()
+function Get-WinObject-DiskInfo ()
 {
+    Write-Host "Gathering information on Disk Usage. "
     $volumedata = Get-WmiObject -Class win32_volume  -Filter "(DriveType = '3')" 
     $volumedata = $volumedata | Where-Object label -ne "System Reserved" | sort-object name
-    $vssarray = @()
+    $vssobject = @()
     # Check if that drive letter has shadowstorage
-    foreach ($drive in $volumedata) {
+    foreach ($drive in $volumedata) 
+    {
         $deviceID = $drive.deviceID
         # Clean up the deviceID variable so it will be able to match results from gwmi win32_shadowstorage
         $deviceID = $deviceID.TrimStart("\\?\")
         $deviceID = "Win32_Volume.DeviceID=`"\\\\?\\" + $deviceID + "\`""
         $vssgrab = Get-WmiObject -Class win32_shadowstorage -ErrorAction SilentlyContinue | Where-Object {$_.Volume -eq $deviceID}
         $diffname = (Get-WmiObject -Class win32_volume | Where-Object {$_.__RELPATH -eq $vssgrab.DiffVolume}).Name
-        $vssarray += [pscustomobject]@{
+        $vssobject += [pscustomobject]@{
             name = $drive.Name
             label = $drive.Label
             FreeSpacePerc = [math]::round($drive.FreeSpace/$drive.Capacity*100, 2)
@@ -97,21 +100,11 @@ function Show-WinObject-DiskInfo ()
             vss_maxspaceGiB = [math]::round($vssgrab.MaxSpace/1GB, 2)
         }
     }
-    $vssarray | Format-Table *
 }
 
-
-##################################
-# Function: Get-SrcSql-Info
-#
-# Download the ActPowerCLI from GitHub
-# 
-##################################
-function Get-SrcSql-Info (
-  [string]$VdpIp
-)
+function Get-SrcSql-Info ([string]$VdpIp)
 {
-  Write-Host "I will be gathering information on Sql Server Host. "
+  Write-Host "Gathering information on Sql Server Host. "
 
   ## Get the status of iSCSI service : Running, Stopped
   $iSCSIStatus = $(get-service msiscsi).status
@@ -151,11 +144,11 @@ function Get-SrcSql-Info (
   } else {
     $SQLInstalled = $True
     $SQLInstances = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server').InstalledInstances
-    foreach ($sql in $SQLInstances) {
-      [PSCustomObject]@{
-        InstanceName = $sql
-      }
-    }
+    #foreach ($sql in $SQLInstances) {
+    #  [PSCustomObject]@{
+    #    InstanceName = $sql
+    #  }
+    #}
   }
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
@@ -170,16 +163,13 @@ function Get-SrcSql-Info (
 
   $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
   Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
-     ## @{Label="WriterID"; Expression={$_.Context.PostContext[0].Trim().SubString(11)}},
-     ## @{Label="InstanceID"; Expression={$_.Context.PostContext[1].Trim().SubString(20)}},
      @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
      @{Label="LastError"; Expression={$_.Context.PostContext[3].Trim().SubString(12)}})
 
   $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters     
 
-  ## $thisObject | ogv
-
-}       ## end if
+  
+}      
 
 ##################################
 # Function: Get-TgtVdp-Info
@@ -194,7 +184,12 @@ function Get-TgtVdp-Info (
   [bool]$WillExec
 )
 {
-  Write-Host "I will be gathering information on Vdp Appliance. "
+    if (!($VdpIp))
+    {
+        $VdpIp = Read-Host "IP or Name of VDP Appliance";
+    }
+
+    Write-Host "Gathering information on Vdp Appliance. "
   
   if  (! ( Test-Connection $VdpIp -Count 2 -Quiet )) {
     Write-Host "Unable to ping / reach $VdpIp .. "
@@ -226,27 +221,44 @@ function Get-TgtVdp-Info (
     write-host "---> Failed: Vdp unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
   }
 
-  write-host "`nTesting the connection from Vdp appliance to SQL Server $(($thisObject).IPAddress) on port 443"
-  write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 443"
-  $rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 443
-  if ( $(($rc).result).Contains("succeeded!") ) {
-    write-host "Passed: Vdp is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-  } else {
-    write-host "---> Failed: Vdp unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-  }
+  #write-host "`nTesting the connection from Vdp appliance to SQL Server $(($thisObject).IPAddress) on port 443"
+  #write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 443"
+  #$rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 443
+  #if ( $(($rc).result).Contains("succeeded!") ) {
+  #  write-host "Passed: Vdp is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
+  #} else {
+  #  write-host "---> Failed: Vdp unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
+  #}
+
 
 
   write-host "`n> udsinfo lsconfiguredinterface"
   write-host "The network interface on the Vdp appliance = $((udsinfo lsconfiguredinterface | select IPAddress).ipaddress) `n"
-  
-  $HostId = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) -And $_.hosttype -eq 'generic' } | Select-Object Id).Id
 
-  if ($Null -eq $HostId) {
 
+
+  $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
+
+  if ($hostid)
+  {
+    write-host "$(($thisObject).ComputerName) is already defined earlier in the Vdp appliance as host ID $hostid. No registration required! "
+  }
+
+  if ($false -eq $WillExec)
+  {
+    write-host ""
+    write-host "******  The commands shown below are not being executed, because -ToExec was not specified."  
+    Write-host "******  You can run them manually or run again with -ToExec"
+    write-host ""
+  }
+
+  if ((!$hostid)) 
+  {
     write-host "`nRegistering the $(($thisObject).ComputerName) with Actifio Vdp appliance $VdpIp `n"
     $cmd = "udstask mkhost -hostname " + $(($thisObject).ComputerName) + " -ipaddress " + $(($thisObject).IPAddress) + " -type generic "
     write-host "> $cmd"
-    if ($true -eq $WillExec) {
+    if ($true -eq $WillExec) 
+    {
       Invoke-Expression $cmd
     } 
 
@@ -254,13 +266,11 @@ function Get-TgtVdp-Info (
     write-host "`nUpdating the description for the $(($thisObject).ComputerName) entry in Actifio Vdp appliance $VdpIp `n"
     $cmd = "udstask chhost -description " + [char]34 + "Added by OnboardSql script" + [char]34 + $hostid
     write-host "> $cmd"
-    if ($true -eq $WillExec) {
+    if ($true -eq $WillExec) 
+    {
       Invoke-Expression $cmd
     } 
-
-  } else {
-    write-host "$(($thisObject).ComputerName) is already defined earlier in the Vdp appliance . No registration required! "
-  }
+  } 
 
   write-host "`nPerforming an application discovery on $(($thisObject).ComputerName) and updating the information in Vdp appliance $VdpIp `n"
   $cmd = "udstask appdiscovery -host " + $hostid
@@ -308,8 +318,14 @@ function Show-WinObject-Info ()
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
   write-Host "                       OS: $(($thisObject).'Windows Version')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
+  
 }
-
+function Show-WinObject-DiskInfo ()
+{
+    write-host "Drive Information:"
+    $vssobject | Format-Table *
+    write-Host "`n---------------------------------------------------------------------------`n"
+}
 
 ##################################
 # Function: Show-SqlObject-Info
@@ -342,7 +358,7 @@ function Show-SqlObject-Info (
     write-Host "             SQL Instance: No Instances Created "
   } else {
     $(($thisObject).SqlInstances) | ForEach-Object { 
-    write-Host "             SQL Instance: $_.InstanceName "  
+    write-Host "             SQL Instance: $_ "  
       }
   }
   if ($null -eq  $(($thisObject).VssWriters)) {
@@ -362,7 +378,7 @@ function Show-SqlObject-Info (
 #
 ##############################
 
-if ($false -eq $srcsql.IsPresent -And $false -eq $tgtvdp.IsPresent) {
+if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
   Show-Usage
   exit
 }
@@ -372,14 +388,18 @@ $thisObject = New-Object -TypeName psobject
 
 
 Get-SrcWin-Info
-
 if ($true -eq $srcsql.IsPresent) {
   Get-SrcSql-Info $VdpIp
+  Get-WinObject-DiskInfo
 }
 
 Show-WinObject-Info
-Show-SqlObject-Info $VdpIp
-Show-WinObject-DiskInfo
+if ($true -eq $srcsql.IsPresent) {
+    Show-WinObject-DiskInfo
+    Show-SqlObject-Info $VdpIp
+}
+
+
 
 if ($true -eq $tgtvdp.IsPresent) {
   Get-TgtVdp-Info $VdpIp $VdpUser $VdpPassword $ToExec.IsPresent
