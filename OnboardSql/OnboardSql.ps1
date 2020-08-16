@@ -4,6 +4,8 @@
 #
 # Version 1.0 Initial Release
 # Version 1.1 Add disk info, improve script
+# Version 1.2 add menu
+# Version 1.3 add iscsi test
 #
 <#   
 .SYNOPSIS   
@@ -42,12 +44,13 @@ Param
   [switch]$srcsql = $false,         
   [switch]$tgtvdp = $false,      
   [switch]$ToExec = $false,  
+  [switch]$iscsitest = $false,  
   [string]$vdpip = "",           
   [string]$vdpuser = "",        
   [string]$vdppassword = ""   
 )  ### Param
 
-$ScriptVersion = "1.2"
+$ScriptVersion = "1.3"
 
 function Get-SrcWin-Info ()
 {
@@ -198,6 +201,10 @@ function Get-TgtVDP-Info (
     {
         $vdpip = $env:acthost
     }
+    if  ((!($vdpip)) -and ($acthost))
+    {
+        $vdpip = $acthost
+    }
 
     if (!($vdpip))
     {
@@ -220,11 +227,11 @@ function Get-TgtVDP-Info (
         exit 1
     }
 
-    if (! $env:ACTSESSIONID ) {
+    if ( (!($env:ACTSESSIONID ))  -and (!($ACTSESSIONID)) ){
     $rc = connect-act -acthost $vdpip -actuser $VDPUser -password $VDPPassword -ignorecerts
     }
 
-    if (! $env:ACTSESSIONID ) {
+    if ( (!($env:ACTSESSIONID ))  -and (!($ACTSESSIONID)) ) {
     Write-Host "Unable to connect to VDP appliance $vdpip .. "
     exit 1
     }
@@ -232,7 +239,7 @@ function Get-TgtVDP-Info (
     write-Host "`n--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------`n"  
     write-host "`n* TEST:  Testing the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 5106 (connector port)"
     # write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 5106"
-    $rc =udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
+    $rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
 
     if ( $(($rc).result).Contains("succeeded!") ) {
     write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
@@ -307,13 +314,12 @@ function Get-TgtVDP-Info (
         return
     }
 
-
-    write-host "`n* TEST:  Performing an iSCSI test on $(($thisObject).ComputerName) from VDP appliance $vdpip : `n"
-    $cmd = "udstask iscsitest -host " + $HostId 
-    #write-host "> $cmd"
-    #if ($true -eq $WillExec) {
+    if ($iscsitest)
+    {
+        write-host "`n* TEST:  Performing an iSCSI test on $(($thisObject).ComputerName) from VDP appliance $vdpip : `n"
+        $cmd = "udstask iscsitest -host " + $HostId 
         Invoke-Expression $cmd | Format-Table *
-    # } 
+    } 
 
     if ($true -eq $WillExec) {   
         write-host "`nPerforming an application discovery on $(($thisObject).ComputerName) and updating the information in VDP appliance $vdpip `n"
@@ -378,7 +384,7 @@ function Show-Usage ()
     write-host " get-help .\OnboardSql.ps1 -examples"
     write-host " get-help .\OnboardSql.ps1 -detailed"
     write-host " get-help .\OnboardSql.ps1 -full"    
-    return
+    exit 0
 }     
 
 function Show-WinObject-Info ()
@@ -463,30 +469,45 @@ if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have four choices:"
     Write-Host ""
     Write-Host "1`: Check all components required on the SQL Server (default)"
-    Write-Host "2`: Check connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
-    Write-Host "3`: Perform both 1 and 2 (recommended if sharing this information with Actifio)"
-    Write-Host "4`: Onboard this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed"
-    Write-Host "5`: Show CLI options to run this function without using this menu"
+    Write-Host "2`: Check network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
+    Write-Host "3`: Check iSCSI and network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
+    Write-Host "4`: Perform both 1 and 2 (recommended if sharing this information with Actifio)"
+    Write-Host "5`: Perform both 1 and 3 (recommended if sharing this information with Actifio and host iSCSI is in use)"
+    Write-Host "6`: Onboard this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed"
+    Write-Host "7`: Onboard this host to a VDP Appliance with iSCSI (needs ActPowerCLI PowerShell Module installed"
+    Write-Host "8`: Show CLI options to run this function without using this menu"
     Write-Host ""
-    [int]$userselection = Read-Host "Please select from this list (1-5)"
+    [int]$userselection = Read-Host "Please select from this list (1-8)"
     if ($userselection -eq "") { $userselection = 1 }
     if ($userselection -eq 1) {  $srcsql = $TRUE }
     if ($userselection -eq 2) {  $tgtvdp = $TRUE }
+        $iscsitest = $FALSE}
     if ($userselection -eq 3) {  $tgtvdp = $TRUE 
+        $iscsitest = $TRUE}
+    if ($userselection -eq 4) {  $tgtvdp = $TRUE 
+        $iscsitest = $FALSE
         $srcsql = $TRUE}
-    if ($userselection -eq 4) {  $tgtvdp = $TRUE  
-        $ToExec = $TRUE }
-    if ($userselection -eq 5) {  Show-Usage  }
-}
+    if ($userselection -eq 5) {  $tgtvdp = $TRUE 
+        $iscsitest = $TRUE
+        $srcsql = $TRUE}
+    if ($userselection -eq 6) {  $tgtvdp = $TRUE  
+        $ToExec = $TRUE 
+        $iscsitest = $FALSE}
+    if ($userselection -eq 7) {  $tgtvdp = $TRUE  
+        $ToExec = $TRUE 
+        $iscsitest = $TRUE}
+    if ($userselection -eq 8) {  Show-Usage  }
 
+$hostVersionInfo = (get-host).Version.Major
+    
 ## Create an object based on the PSObject class
 $thisObject = New-Object -TypeName psobject 
 
 
 Get-SrcWin-Info
 if ($true -eq $srcsql.IsPresent) {
-  Get-SrcSql-Info $vdpip
   Get-WinObject-DiskInfo
+  Get-SrcSql-Info $vdpip
 }
 
 Show-WinObject-Info
