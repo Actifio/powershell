@@ -36,17 +36,33 @@ Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appl
 
 **Perform a test run on application discovery on the SQL Server and VDP appliance:**
 ```
-PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret
-Missing ToExec value is False
-I will be gathering information on Windows Host.
-I will be gathering information on Sql Server Host.
+PS C:\Users\av> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret
+Gathering information on Windows Host.
+Gathering information on Sql Server Host.
+Gathering information on Disk Usage.
 
 --------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
 
-            Computer Name: WIN2K12R2
-               IP Address: 10.10.10.55
-                     FQDN: Win2k12R2.acme.com
-                       OS: Microsoft Windows Server 2012 R2 Datacenter
+            Computer Name: SYDWINSQLC3
+               IP Address: 10.65.10.20
+                     FQDN: sydwinsqlc3.au.actifio.com
+                       OS: Microsoft Windows Server 2016 Standard
+       PowerShell Version: 5.1
+        Actifio Connector: 10.0.1.3663
+
+
+---------------------------------------------------------------------------
+
+Drive Information:
+
+name label                  FreeSpacePerc FreeSpaceGiB CapacityGiB vssdiff vss_usedspaceGiB vss_allocspaceGiB vss_maxsp
+                                                                                                                 aceGiB
+---- -----                  ------------- ------------ ----------- ------- ---------------- ----------------- ---------
+C:\                                  48.7        28.98       59.51                        0                 0         0
+D:\  Data                           99.73       199.46         200                        0                 0         0
+E:\  Logs                           99.02        99.01         100                        0                 0         0
+X:\  Actifio-Backup-AAGDB03          99.9       119.87      119.99                        0                 0         0
+Y:\  Actifio-Backup-AAGDB03         99.95       239.86      239.99                        0                 0         0
 
 ---------------------------------------------------------------------------
 
@@ -56,259 +72,179 @@ I will be gathering information on Sql Server Host.
    iSCSI FireWall Inbound: False
   iSCSI FireWall Outbound: False
 
-Actifio Vdp Ip Pingable  : True
-            SQL Server SW: Not Installed
-             SQL Instance: No Instances Created
-              VSS Writers: Not Installed
+            SQL Server SW: Installed
+             SQL Instance: MSSQLSERVER
+     VSS Writer [ State ]: Task Scheduler Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: VSS Metadata Store Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Performance Counters Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: System Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: SqlServerWriter [ Stable ] ( No error )
+     VSS Writer [ State ]: ASR Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Shadow Copy Optimization Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: COM+ REGDB Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Registry Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: WMI Writer [ Stable ] ( No error )
+     VSS Writer [ State ]: Cluster Database [ Stable ] ( No error )
+     VSS Writer [ State ]: Cluster Shared Volume VSS Writer [ Stable ] ( No error )
 
 ---------------------------------------------------------------------------
 
-I will be gathering information on Vdp Appliance.
+Gathering information on VDP Appliance.
 
 --------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
 
-Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 5106 (connector port)
-> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 5106
-Passed: Vdp is able to communicate with the SQL Server 10.10.10.55 on port 5106
+* TEST:  Testing the connection from VDP appliance to SQL Server 10.65.10.20 on port 5106 (connector port)
+Passed: VDP is able to communicate with the SQL Server 10.65.10.20 on port 5106
 
-Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 443
-> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 443
----> Failed: Vdp unable to communicate with the SQL Server 10.10.10.55 on port 443
+* TEST:  Checking if this host is already defined to the VDP Appliance
+Passed:  SYDWINSQLC3.au.actifio.com is already defined in the VDP appliance as host ID 3471819. No registration required
+!
 
-> udsinfo lsconfiguredinterface
-The network interface on the Vdp appliance = 10.10.10.1
+* TEST:  Performing an iSCSI test on SYDWINSQLC3 from VDP appliance 10.65.5.35 :
 
-WIN2K12R2 is already defined earlier in the Vdp appliance . No registration required!
 
-Performing an application discovery on WIN2K12R2 and updating the information in Vdp appliance 10.10.10.1
+iSCSIport                                            Status Test
+---------                                            ------ ----
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Host iSCSI initiator installed and configured
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Appliance has valid IQN
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Host has logged into the Appliance iSCSI target
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Mapping disk from Appliance to host
 
-> udstask appdiscovery -host 19898905
 
-Performing an iSCSI test on WIN2K12R2 from Vdp appliance 10.10.10.1 (optional) :
 
-> udstask iscsitest -host 19898905
+* TEST:  Listing all applications discovered on SYDWINSQLC3 stored in VDP appliance 10.65.5.35 :
 
-Listing all applications discovered on WIN2K12R2 stored in Vdp appliance 10.10.10.1 :
 
-> udsinfo lsapplication | where { $_.HostId -eq 19898905 } | Select-Object AppName, AppType
+appname                    apptype
+-------                    -------
+C:\                        FileSystem
+D:\                        FileSystem
+E:\                        FileSystem
+SYDWINSQLC3                SqlInstance
+avtest112                  SqlServerWriter
+db1                        SqlServerWriter
+DevDB1test                 SqlServerWriter
+DevDB2test                 SqlServerWriter
+master                     SqlServerWriter
+model                      SqlServerWriter
+msdb                       SqlServerWriter
+SimpleDB                   SqlServerWriter
+sydwinsqlc3.au.actifio.com SystemState
+
+
+
+* TEST:  Checking Connector version of SYDWINSQLC3 compared to latest available on VDP appliance 10.65.5.35
+Passed:  Connector is on the Current Release 10.0.1.3663
 
 ---------------------------------------------------------------------------
 
-Success!
+PS C:\Users\av>
+
 ```
 
 **Perform an actual run on application discovery on the SQL Server and VDP appliance (use the -TopExec switch):**
 ```
-PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword TopSecret -ToExec
-ToExec value is True
-I will be gathering information on Windows Host.
-I will be gathering information on Sql Server Host.
+Gathering information on Windows Host.
 
 --------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
 
-            Computer Name: WIN2K12R2
-               IP Address: 10.10.10.55
-                     FQDN: Win2k12R2.acme.com
-                       OS: Microsoft Windows Server 2012 R2 Datacenter
+            Computer Name: SYDWINSQLC3
+               IP Address: 10.65.10.20
+                     FQDN: sydwinsqlc3.au.actifio.com
+                       OS: Microsoft Windows Server 2016 Standard
+       PowerShell Version: 5.1
+        Actifio Connector: 10.0.1.3663
+
 
 ---------------------------------------------------------------------------
 
-          Domain Firewall: False
-         Private Firewall: False
-          Public Firewall: False
-   iSCSI FireWall Inbound: False
-  iSCSI FireWall Outbound: False
-
-Actifio Vdp Ip Pingable  : True
-            SQL Server SW: Not Installed
-             SQL Instance: No Instances Created
-              VSS Writers: Not Installed
-
----------------------------------------------------------------------------
-
-I will be gathering information on Vdp Appliance.
+Gathering information on VDP Appliance.
 
 --------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
 
-Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 5106 (connector port)
-> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 5106
-Passed: Vdp is able to communicate with the SQL Server 10.10.10.55 on port 5106
 
-Testing the connection from Vdp appliance to SQL Server 10.10.10.55 on port 443
-> udstask testconnection -type tcptest -targetip 10.10.10.55 -targetport 443
----> Failed: Vdp unable to communicate with the SQL Server 10.10.10.55 on port 443
+* TEST:  Testing the connection from VDP appliance to SQL Server 10.65.10.20 on port 5106 (connector port)
+Passed: VDP is able to communicate with the SQL Server 10.65.10.20 on port 5106
 
-> udsinfo lsconfiguredinterface
-The network interface on the Vdp appliance = 10.10.10.1
+* TEST:  Checking if this host is already defined to the VDP Appliance
+Passed:  SYDWINSQLC3.au.actifio.com is already defined in the VDP appliance as host ID 3471819. No registration required!
 
-WIN2K12R2 is already defined earlier in the Vdp appliance . No registration required!
+* TEST:  Performing an iSCSI test on SYDWINSQLC3 from VDP appliance 10.65.5.35 :
 
-Performing an application discovery on WIN2K12R2 and updating the information in Vdp appliance 10.10.10.1
+iSCSIport                                            Status Test
+---------                                            ------ ----
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Host iSCSI initiator installed and configured
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Appliance has valid IQN
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Host has logged into the Appliance iSCSI target
+iqn.1991-05.com.microsoft:sydwinsqlc3.au.actifio.com Passed Mapping disk from Appliance to host
 
-> udstask appdiscovery -host 19898905
 
-new     : false
-appname : true
-missing : true
-exists  : false
-id      : 19898932 Win2k12R2.acme.com
 
-new     : false
-appname : false
-missing : true
-exists  : true
-id      : 21562741 C:\
+Performing an application discovery on SYDWINSQLC3 and updating the information in VDP appliance 10.65.5.35
 
-Performing an iSCSI test on WIN2K12R2 from Vdp appliance 10.10.10.1 (optional) :
 
-> udstask iscsitest -host 19898905
-iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
-Status    : Passed
-Test      : Host iSCSI initiator installed and configured
+new   appname                                               saved missing exists id
+---   -------                                               ----- ------- ------ --
+false SimpleDB                                              true  false   true   6092657
+false model                                                 true  false   true   3472253
+false E:\                                                   true  false   true   3472231
+false avtest112                                             true  false   true   9198918
+false sydwinsqlc3.au.actifio.com                            true  false   true   3472241
+false D:\                                                   true  false   true   3472235
+false C:\                                                   true  false   true   3472237
+false DevDB2test                                            true  true    true   8371083
+false DevDB1test                                            true  true    true   8371085
+false master                                                true  false   true   3472254
+false msdb                                                  true  false   true   3472252
+false db1                                                   true  true    true   8369276
+false SYDWINSQLC3                                           true  false   true   3472251
+true  C:\cmp1\                                              true  false   false  9619904
+true  X:\                                                   true  false   false  9619906
+true  C:\Windows\act\Job_9198881_mountpoint_15951294935132\ true  false   false  9619901
+true  C:\Windows\act\Job_9198881_mountpoint_15951294934971\ true  false   false  9619902
+true  Y:\                                                   true  false   false  9619905
+true  C:\tmp\                                               true  false   false  9619903
+true  sydwinsqlcx                                           false false   false  3471821
+true  AAGDB07-CG                                            false false   false  3471822
+true  AAGDB06-CG                                            false false   false  3471842
+true  AAGDB04                                               false false   false  3472226
+true  AAGDB03                                               false false   false  3472236
+true  AAGDB02                                               false false   false  3472230
+true  AAGDB01                                               false false   false  3472242
 
-iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
-Status    : Passed
-Test      : Appliance has valid IQN
 
-iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
-Status    : Passed
-Test      : Host has logged into the Appliance iSCSI target
 
-iSCSIport : iqn.1991-05.com.microsoft:win2k12r2.acme.com
-Status    : Passed
-Test      : Mapping disk from Appliance to host
+* TEST:  Listing all applications discovered on SYDWINSQLC3 stored in VDP appliance 10.65.5.35 :
 
-Listing all applications discovered on WIN2K12R2 stored in Vdp appliance 10.10.10.1 :
 
-> udsinfo lsapplication | where { $_.HostId -eq 19898905 } | Select-Object AppName, AppType
-appname : C:\
-apptype : FileSystem
+appname                                               apptype
+-------                                               -------
+C:\                                                   FileSystem
+C:\cmp1\                                              FileSystem
+C:\tmp\                                               FileSystem
+C:\Windows\act\Job_9198881_mountpoint_15951294934971\ FileSystem
+C:\Windows\act\Job_9198881_mountpoint_15951294935132\ FileSystem
+D:\                                                   FileSystem
+E:\                                                   FileSystem
+X:\                                                   FileSystem
+Y:\                                                   FileSystem
+SYDWINSQLC3                                           SqlInstance
+avtest112                                             SqlServerWriter
+db1                                                   SqlServerWriter
+DevDB1test                                            SqlServerWriter
+DevDB2test                                            SqlServerWriter
+master                                                SqlServerWriter
+model                                                 SqlServerWriter
+msdb                                                  SqlServerWriter
+SimpleDB                                              SqlServerWriter
+sydwinsqlc3.au.actifio.com                            SystemState
+
+* TEST:  Checking Connector version of SYDWINSQLC3 compared to latest available on VDP appliance 10.65.5.35
+Passed:  Connector is on the Current Release 10.0.1.3663
 
 ---------------------------------------------------------------------------
 
-Success!
+PS C:\Users\av>
 ```
 
-**Perform a test run on application discovery on the SQL Server with SQL Instance and software installed and VDP appliance:**
-```
-PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser johndoe -vdppassword 12!pass345
-I will be gathering information on Windows Host.
-I will be gathering information on Sql Server Host.
 
---------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
-
-            Computer Name: DEMO-SQL-2
-               IP Address: 10.10.10.22
-                     FQDN: demo-sql-2.acme.com
-                       OS: Microsoft Windows Server 2019 Standard
-
----------------------------------------------------------------------------
-
-          Domain Firewall: False
-         Private Firewall: False
-          Public Firewall: False
-   iSCSI FireWall Inbound: False
-  iSCSI FireWall Outbound: False
-
-  Actifio Vdp Ip Pingable: True
-            SQL Server SW: Installed
-             SQL Instance: MSSQLSERVER.InstanceName
-     VSS Writer [ State ]: Task Scheduler Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: VSS Metadata Store Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Performance Counters Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: System Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: SqlServerWriter [ Stable ] ( No error )
-     VSS Writer [ State ]: WMI Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Shadow Copy Optimization Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Registry Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: ASR Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: COM+ REGDB Writer [ Stable ] ( No error )
-
----------------------------------------------------------------------------
-
-I will be gathering information on Vdp Appliance.
-
---------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------
-
-Testing the connection from Vdp appliance to SQL Server 10.10.10.22 on port 5106 (connector port)
-> udstask testconnection -type tcptest -targetip 10.10.10.22 -targetport 5106
-Passed: Vdp is able to communicate with the SQL Server 10.10.10.22 on port 5106
-
-Testing the connection from Vdp appliance to SQL Server 10.10.10.22 on port 443
-> udstask testconnection -type tcptest -targetip 10.10.10.22 -targetport 443
----> Failed: Vdp unable to communicate with the SQL Server 10.10.10.22 on port 443
-
-> udsinfo lsconfiguredinterface
-The network interface on the Vdp appliance = 10.10.10.1
-
-Registering the DEMO-SQL-2 with Actifio Vdp appliance 10.10.10.1
-
-> udstask mkhost -hostname DEMO-SQL-2 -ipaddress 10.10.10.22 -type generic -appliance 10.10.10.1
-
-Updating the description for the DEMO-SQL-2 entry in Actifio Vdp appliance 10.10.10.1
-
-> udstask chhost 19095901 -description "Added by OnboardSql script"
-
-Performing an application discovery on DEMO-SQL-2 and updating the information in Vdp appliance 10.10.10.1
-
-> udstask appdiscovery -host 19095901
-
-Performing an iSCSI test on DEMO-SQL-2 from Vdp appliance 10.10.10.1 (optional) :
-
-> udstask iscsitest -host 19095901
-
-Listing all applications discovered on DEMO-SQL-2 stored in Vdp appliance 10.10.10.1 :
-
-> udsinfo lsapplication | where { $_.HostId -eq 19095901 } | Select-Object AppName, AppType
-
----------------------------------------------------------------------------
-
-InstanceName
-------------
-MSSQLSERVER
-Success!
-```
-
-**Perform a test run on application discovery on the SQL Server with SQL Instance and software installed:**
-```
-PS C:\Users\johndoe\Desktop> .\OnboardSql.ps1 -srcsql
-I will be gathering information on Windows Host.
-I will be gathering information on Sql Server Host.
-
---------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------
-
-            Computer Name: DEMO-SQL-2
-               IP Address: 10.10.10.22
-                     FQDN: demo-sql-2.acme.com
-                       OS: Microsoft Windows Server 2019 Standard
-
-
----------------------------------------------------------------------------
-
-          Domain Firewall: False
-         Private Firewall: False
-          Public Firewall: False
-   iSCSI FireWall Inbound: False
-  iSCSI FireWall Outbound: False
-
-            SQL Server SW: Installed
-             SQL Instance: MSSQLSERVER.InstanceName
-     VSS Writer [ State ]: Task Scheduler Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: VSS Metadata Store Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Performance Counters Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: System Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: SqlServerWriter [ Stable ] ( No error )
-     VSS Writer [ State ]: WMI Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Registry Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: ASR Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: Shadow Copy Optimization Writer [ Stable ] ( No error )
-     VSS Writer [ State ]: COM+ REGDB Writer [ Stable ] ( No error )
-
----------------------------------------------------------------------------
-
-InstanceName
-------------
-MSSQLSERVER
-
-PS C:\Users\johndoe\Desktop>
-```
