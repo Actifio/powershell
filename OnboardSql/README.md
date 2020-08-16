@@ -19,20 +19,12 @@ This script has been tested with PowerShell 4, 5 and 7.  Note that to run this s
 The following are options supported:
 * _-srcsql_  This wll performs a discovery on the components required on the SQL Server i.e. iSCSI services, firewalls, and etc.
 * _-tgtvdp_  This wll performs all checks on the VDP appliance i.e. connectivity from VDP to SQL Server host, registering the SQL server host, and etc
-* _-ToExec_  This registers the SQL Server with the host and performs an iSCSI test.
+* _-ToExec_  This registers the SQL Server with the host
+* _-iscsitest_  This requests an iSCSI test be run
 
 ## Sample output:
 The following are sample of the different operations supported:
-
-**Getting help on usage:**
-```
-PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1
-Usage: .\OnboardSql.ps1 [ -srcql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ]
-
- get-help .\OnboardSql.ps1 -examples
- get-help .\OnboardSql.ps1 -detailed
- get-help .\OnboardSql.ps1 -full
-```
+If no options are entered then a menu will be displayed.
 
 **Perform a test run on application discovery on the SQL Server and VDP appliance:**
 ```
