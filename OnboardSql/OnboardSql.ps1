@@ -31,7 +31,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 15-Aug-2020
+    LastUpdated: 16-Aug-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -47,22 +47,22 @@ Param
   [string]$vdppassword = ""   
 )  ### Param
 
-$ScriptVersion = "1.1"
+$ScriptVersion = "1.2"
 
 function Get-SrcWin-Info ()
 {
-  Write-Host "Gathering information on Windows Host. "
+    Write-Host "Gathering information on Windows Host. "
 
-  ## Find the Windows version on the source Windows Server
-  $WinVer = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-  $thisObject | Add-Member -MemberType NoteProperty -Name 'Windows Version' -Value $("$WinVer")
+    ## Find the Windows version on the source Windows Server
+    $WinVer = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
+    $thisObject | Add-Member -MemberType NoteProperty -Name 'Windows Version' -Value $("$WinVer")
 
-  ## Find the source Windows Server computername
-  $thisObject | Add-Member -MemberType NoteProperty -Name ComputerName -Value $("$env:COMPUTERNAME")
+    ## Find the source Windows Server computername
+    $thisObject | Add-Member -MemberType NoteProperty -Name ComputerName -Value $("$env:COMPUTERNAME")
 
-  ## Find the source Windows Server FQDN
-  $CurrentFQDN = [System.Net.DNS]::GetHostByName($Null).HostName
-  $thisObject | Add-Member -MemberType NoteProperty -Name FQDN -Value $("$CurrentFQDN")
+    ## Find the source Windows Server FQDN
+    $CurrentFQDN = [System.Net.DNS]::GetHostByName($Null).HostName
+    $thisObject | Add-Member -MemberType NoteProperty -Name FQDN -Value $("$CurrentFQDN")
 
     ## Find the source Windows Server IP address
     $CurrentIP = ( Get-NetIPConfiguration |
@@ -70,7 +70,22 @@ function Get-SrcWin-Info ()
         $null -ne $_.IPv4DefaultGateway -And
         $_.NetAdapter.Status -ne "Disconnected"
     } ).IPv4Address.IPAddress
-  $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
+    $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
+
+    # check powershell version
+    [string]$psversionmajor = (Get-host).version.major 
+    [string]$psversionminor = (Get-host).version.minor
+    [string]$psversiongrab = $psversionmajor + "." + $psversionminor
+    $thisObject | Add-Member -MemberType NoteProperty -Name PowerShellVersion -Value $psversiongrab
+
+    # look for connector 
+    if (! (Test-Path 'HKLM:\SOFTWARE\Actifio Inc')) {
+    # Write-Host "Actifio Software is not installed on this host !!"
+    $ActVersion = $Null
+    } else {
+    $ActVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
+    }
+    $thisObject | Add-Member -MemberType NoteProperty -Name ActVersion -Value $ActVersion  
 }
 
 function Get-WinObject-DiskInfo ()
@@ -79,7 +94,7 @@ function Get-WinObject-DiskInfo ()
     $volumedata = Get-WmiObject -Class win32_volume  -Filter "(DriveType = '3')" 
     $volumedata = $volumedata | Where-Object label -ne "System Reserved" | sort-object name
     $vssobject = @()
-    # Check if that drive letter has shadowstorage
+        # Check if that drive letter has shadowstorage
     foreach ($drive in $volumedata) 
     {
         $deviceID = $drive.deviceID
@@ -100,9 +115,10 @@ function Get-WinObject-DiskInfo ()
             vss_maxspaceGiB = [math]::round($vssgrab.MaxSpace/1GB, 2)
         }
     }
+    $script:vssobject = $vssobject
 }
 
-function Get-SrcSql-Info ([string]$VdpIp)
+function Get-SrcSql-Info ([string]$vdpip)
 {
   Write-Host "Gathering information on Sql Server Host. "
 
@@ -130,13 +146,7 @@ function Get-SrcSql-Info ([string]$VdpIp)
   ## Set-NetFirewallRule -Name MsiScsi-In-TCP -Enabled True
   ## Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
 
-  if (! (Test-Path 'HKLM:\SOFTWARE\Actifio Inc')) {
-    Write-Host "Actifio Software is not installed on this host !!"
-    $ActVersion = $Null
-  } else {
-    $ActVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
-  }
-  $thisObject | Add-Member -MemberType NoteProperty -Name ActVersion -Value $ActVersion  
+
 
   if (! (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server')) {
     $SQLInstalled = $False
@@ -153,8 +163,8 @@ function Get-SrcSql-Info ([string]$VdpIp)
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
   $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
 
-  if ($VdpIp -ne $null -And $VdpIp -ne "") {
-    $Pingable = Test-Connection $VdpIP -Count 1 -Quiet
+  if ($vdpip -ne $null -And $vdpip -ne "") {
+    $Pingable = Test-Connection $VDPIP -Count 1 -Quiet
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable    
   } else {
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
@@ -172,131 +182,191 @@ function Get-SrcSql-Info ([string]$VdpIp)
 }      
 
 ##################################
-# Function: Get-TgtVdp-Info
+# Function: Get-TgtVDP-Info
 #
 # Download the ActPowerCLI from GitHub
 # 
 ##################################
-function Get-TgtVdp-Info (
-  [string]$VdpIp,             
-  [string]$VdpUser,            
-  [string]$VdpPassword,
+function Get-TgtVDP-Info (
+  [string]$vdpip,             
+  [string]$VDPUser,            
+  [string]$VDPPassword,
   [bool]$WillExec
 )
 {
-    if (!($VdpIp))
+    if  ((!($vdpip)) -and ($env:acthost))
     {
-        $VdpIp = Read-Host "IP or Name of VDP Appliance";
+        $vdpip = $env:acthost
     }
 
-    Write-Host "Gathering information on Vdp Appliance. "
-  
-  if  (! ( Test-Connection $VdpIp -Count 2 -Quiet )) {
-    Write-Host "Unable to ping / reach $VdpIp .. "
+    if (!($vdpip))
+    {
+        $vdpip = Read-Host "IP or Name of VDP Appliance";
+    }
+
+    Write-Host "Gathering information on VDP Appliance. "
+
+    if  (! ( Test-Connection $vdpip -Count 2 -Quiet )) {
+    Write-Host "Unable to ping / reach $vdpip .. "
     # exit 1
-  }
+    }
 
-  ## Ensure that the ActPowerCLI module is imported
-  #
-  $moduleins = get-module -listavailable -name ActPowerCLI
-  if ($null -eq $moduleins) {
-    Import-Module ActPowerCLI
-  }
+    ## Ensure that the ActPowerCLI module is imported
+    #
+    $moduleins = get-module -listavailable -name ActPowerCLI
+    if ($null -eq $moduleins) {
+        #Import-Module ActPowerCLI
+        Write-Host "ActPowerCLI Module not detected."
+        exit 1
+    }
 
-  $rc = connect-act -acthost $VdpIp -actuser $VdpUser -password $VdpPassword -ignorecerts
+    if (! $env:ACTSESSIONID ) {
+    $rc = connect-act -acthost $vdpip -actuser $VDPUser -password $VDPPassword -ignorecerts
+    }
 
-  if (! $env:ACTSESSIONID ) {
-    Write-Host "Unable to connect to Vdp appliance $VdpIp .. "
+    if (! $env:ACTSESSIONID ) {
+    Write-Host "Unable to connect to VDP appliance $vdpip .. "
     exit 1
-  }
-  
-  write-Host "`n--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------`n"  
-  write-host "`nTesting the connection from Vdp appliance to SQL Server $(($thisObject).IPAddress) on port 5106 (connector port)"
-  write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 5106"
-  $rc =udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
+    }
 
-  if ( $(($rc).result).Contains("succeeded!") ) {
-    write-host "Passed: Vdp is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
-  } else {
-    write-host "---> Failed: Vdp unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
-  }
+    write-Host "`n--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------`n"  
+    write-host "`n* TEST:  Testing the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 5106 (connector port)"
+    # write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 5106"
+    $rc =udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
 
-  #write-host "`nTesting the connection from Vdp appliance to SQL Server $(($thisObject).IPAddress) on port 443"
-  #write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 443"
-  #$rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 443
-  #if ( $(($rc).result).Contains("succeeded!") ) {
-  #  write-host "Passed: Vdp is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-  #} else {
-  #  write-host "---> Failed: Vdp unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-  #}
+    if ( $(($rc).result).Contains("succeeded!") ) {
+    write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
+    } else {
+    write-host "---> Failed: VDP unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
+    }
 
-
-
-  write-host "`n> udsinfo lsconfiguredinterface"
-  write-host "The network interface on the Vdp appliance = $((udsinfo lsconfiguredinterface | select IPAddress).ipaddress) `n"
+    #write-host "`nTesting the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 443"
+    #write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 443"
+    #$rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 443
+    #if ( $(($rc).result).Contains("succeeded!") ) {
+    #  write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
+    #} else {
+    #  write-host "---> Failed: VDP unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
+    #}
 
 
 
-  $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
+    # write-host "`n> udsinfo lsconfiguredinterface"
+    # write-host "The network interface on the VDP appliance = $((udsinfo lsconfiguredinterface | select IPAddress).ipaddress) `n"
 
-  if ($hostid)
-  {
-    write-host "$(($thisObject).ComputerName) is already defined earlier in the Vdp appliance as host ID $hostid. No registration required! "
-  }
 
-  if ($false -eq $WillExec)
-  {
-    write-host ""
-    write-host "******  The commands shown below are not being executed, because -ToExec was not specified."  
-    Write-host "******  You can run them manually or run again with -ToExec"
-    write-host ""
-  }
-
-  if ((!$hostid)) 
-  {
-    write-host "`nRegistering the $(($thisObject).ComputerName) with Actifio Vdp appliance $VdpIp `n"
-    $cmd = "udstask mkhost -hostname " + $(($thisObject).ComputerName) + " -ipaddress " + $(($thisObject).IPAddress) + " -type generic "
-    write-host "> $cmd"
-    if ($true -eq $WillExec) 
+    write-host "`n* TEST:  Checking if this host is already defined to the VDP Appliance"
+    $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
+    if ($hostid)
     {
-      Invoke-Expression $cmd
-    } 
-
-    $HostId = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
-    write-host "`nUpdating the description for the $(($thisObject).ComputerName) entry in Actifio Vdp appliance $VdpIp `n"
-    $cmd = "udstask chhost -description " + [char]34 + "Added by OnboardSql script" + [char]34 + $hostid
-    write-host "> $cmd"
-    if ($true -eq $WillExec) 
+        write-host "Passed:  $(($thisObject).ComputerName) is already defined in the VDP appliance as host ID $hostid. No registration required! "
+    }
+    if ((!($hostid)) -and ($env:USERDNSDOMAIN))
     {
-      Invoke-Expression $cmd
+        $secondchancelookup = $(($thisObject).ComputerName) + "." + $env:USERDNSDOMAIN.ToLower()
+        $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $secondchancelookup } | Select-Object Id).Id
+        if ($hostid)
+        {
+            write-host "Passed:  $secondchancelookup is already defined in the VDP appliance as host ID $hostid. No registration required! "
+        }
+    }
+
+
+    #if ($false -eq $WillExec)
+    #{
+    #  write-host ""
+    #  write-host "******  The commands shown below are not being executed, because -ToExec was not specified."  
+    #  Write-host "******  You can run them manually or run again with -ToExec"
+    #  write-host ""
+    #}
+
+
+    if ( (!($hostid)) -and ($true -eq $WillExec))
+    {
+        write-host "`nRegistering the $(($thisObject).ComputerName) with Actifio VDP appliance $vdpip `n"
+        $cmd = "udstask mkhost -hostname " + $(($thisObject).ComputerName) + " -ipaddress " + $(($thisObject).IPAddress) + " -type generic "
+        # write-host "> $cmd"
+        if ($true -eq $WillExec) 
+        {
+            Invoke-Expression $cmd
+        } 
+
+        $HostId = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
+        write-host "`nUpdating the description for the $(($thisObject).ComputerName) entry in Actifio VDP appliance $vdpip `n"
+        $cmd = "udstask chhost -description " + [char]34 + "Added by OnboardSql script" + [char]34 + $hostid
+        # write-host "> $cmd"
+        if ($true -eq $WillExec) 
+        {
+            Invoke-Expression $cmd
+        } 
     } 
-  } 
+    
+    if ( (!($hostid)) -and ($false -eq $WillExec))
+    {
+        write-host "`n---> Failed: Did not find a host definition matching $(($thisObject).ComputerName) on Actifio VDP appliance $vdpip `n"
+        return
+    }
 
-  write-host "`nPerforming an application discovery on $(($thisObject).ComputerName) and updating the information in Vdp appliance $VdpIp `n"
-  $cmd = "udstask appdiscovery -host " + $hostid
-  write-host "> $cmd"
-  if ($true -eq $WillExec) {
-    Invoke-Expression $cmd
-  } 
 
-  write-host "`nPerforming an iSCSI test on $(($thisObject).ComputerName) from Vdp appliance $VdpIp (optional) : `n"
-  $cmd = "udstask iscsitest -host " + $HostId 
-  write-host "> $cmd"
-  if ($true -eq $WillExec) {
-    Invoke-Expression $cmd
-  } 
+    write-host "`n* TEST:  Performing an iSCSI test on $(($thisObject).ComputerName) from VDP appliance $vdpip : `n"
+    $cmd = "udstask iscsitest -host " + $HostId 
+    #write-host "> $cmd"
+    #if ($true -eq $WillExec) {
+        Invoke-Expression $cmd | Format-Table *
+    # } 
 
-  write-host "`nListing all applications discovered on $(($thisObject).ComputerName) stored in Vdp appliance $VdpIp : `n"
-  $cmd = "udsinfo lsapplication | where { `$`_.HostId -eq $HostId } | Select-Object AppName, AppType "
-  write-host "> $cmd"
-  if ($true -eq $WillExec) {
-    Invoke-Expression $cmd
-  } 
+    if ($true -eq $WillExec) {   
+        write-host "`nPerforming an application discovery on $(($thisObject).ComputerName) and updating the information in VDP appliance $vdpip `n"
+        $cmd = "udstask appdiscovery -host " + $hostid
+        # write-host "> $cmd"
+        if ($true -eq $WillExec) {
+            Invoke-Expression $cmd | Format-Table *
+        } 
+    }
 
-  write-Host "`n---------------------------------------------------------------------------`n"
 
-  Disconnect-Act
-}       ## end if
+    write-host "`n* TEST:  Listing all applications discovered on $(($thisObject).ComputerName) stored in VDP appliance $vdpip : `n"
+    $cmd = "udsinfo lsapplication | where { `$`_.HostId -eq $HostId } | Select-Object AppName, AppType "
+    #write-host "> $cmd"
+    #if ($true -eq $WillExec) {
+        Invoke-Expression $cmd | Sort-Object apptype,appname | Format-Table * 
+    #} 
+
+    if (($thisObject).'ActVersion') 
+    {
+        write-host "`n* TEST:  Checking Connector version of $(($thisObject).ComputerName) compared to latest available on VDP appliance $vdpip"
+        $connectorgrab = reportconnectors -a $hostid
+        if ($connectorgrab.VersionCheck -eq "Current Release")
+        {
+            write-host "Passed:  Connector is on the Current Release" $connectorgrab.AvailableVersion
+        }   
+        elseif ($connectorgrab.VersionCheck -eq "Newer Version")
+        {
+            write-host "Partial:  Installed Connector ($thisObject).'ActVersion' is on a higher release than the VDP Applianceversion" $connectorgrab.AvailableVersion
+        }
+        elseif ( $connectorgrab.VersionCheck -eq "Upgrade Needed")
+        {
+            write-host "---> Failed: Connector is downlevel, version" $connectorgrab.AvailableVersion "is available"
+            if  ($false -eq $WillExec)
+            {
+                write-host "             Upgrade by running:    udstask upgradehostconnector -hosts $hostid"
+                write-host "             Wait a few minutes for the upgrade to complete before testing again"
+            }
+            else {
+                write-host "Upgrading Connector to $connectorgrab.AvailableVersion. Wait a few minutes for the upgrade to complete before testing again"
+                udstask upgradehostconnector -hosts $hostid
+            }
+        }
+        else 
+        {
+            Write-Host "Connector version not found"
+        }
+    }
+
+    write-Host "`n---------------------------------------------------------------------------`n"
+
+    # Disconnect-Act -quiet
+}      
 
 ##################################
 # Function: Show-Usage
@@ -304,11 +374,12 @@ function Get-TgtVdp-Info (
 ##################################
 function Show-Usage ()
 {
-    write-host "Usage: .\OnboardSql.ps1 [ -srcsql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <Vdp IP appliance> [ -vdpuser <Vdp CLI user> ] [ -vdppassword <Vdp password> ] `n"
+    write-host "Usage: .\OnboardSql.ps1 [ -srcsql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <VDP IP appliance> [ -vdpuser <VDP CLI user> ] [ -vdppassword <VDP password> ] `n"
     write-host " get-help .\OnboardSql.ps1 -examples"
     write-host " get-help .\OnboardSql.ps1 -detailed"
     write-host " get-help .\OnboardSql.ps1 -full"    
-}     ### end of function
+    return
+}     
 
 function Show-WinObject-Info ()
 {
@@ -316,14 +387,23 @@ function Show-WinObject-Info ()
   write-Host "            Computer Name: $(($thisObject).ComputerName) "
   write-Host "               IP Address: $(($thisObject).IPAddress) "
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
-  write-Host "                       OS: $(($thisObject).'Windows Version')`n"
+  write-Host "                       OS: $(($thisObject).'Windows Version')"
+  write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
+  write-Host "        Actifio Connector: $(($thisObject).'ActVersion')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
   
 }
 function Show-WinObject-DiskInfo ()
 {
     write-host "Drive Information:"
-    $vssobject | Format-Table *
+    if ($vssobject)
+    {
+        $vssobject | Format-Table *
+    }
+    else 
+    {
+        write-host "No Drive Information was found"
+    }
     write-Host "`n---------------------------------------------------------------------------`n"
 }
 
@@ -332,7 +412,7 @@ function Show-WinObject-DiskInfo ()
 #
 ##################################
 function Show-SqlObject-Info (
-  [string]$VdpIp
+  [string]$vdpip
 )
 {
   write-Host "          Domain Firewall: $(($thisObject).DomainFirewall) "
@@ -341,11 +421,11 @@ function Show-SqlObject-Info (
   write-Host "   iSCSI FireWall Inbound: $(($thisObject).iSCSIfwInStatus) "
   write-Host "  iSCSI FireWall Outbound: $(($thisObject).iSCSIfwOutStatus)`n"  
 
-  if ($VdpIp -ne $null -And $VdpIp -ne "") {
-    if ( Test-Connection $VdpIp -Count 2 -Quiet ) {
-      write-Host "  Actifio Vdp Ip Pingable: True "
+  if ($vdpip -ne $null -And $vdpip -ne "") {
+    if ( Test-Connection $vdpip -Count 2 -Quiet ) {
+      write-Host "  Actifio VDP Ip Pingable: True "
     } else {
-      write-Host "  Actifio Vdp Ip Pingable: False "
+      write-Host "  Actifio VDP Ip Pingable: False "
     }    
   }
 
@@ -379,8 +459,24 @@ function Show-SqlObject-Info (
 ##############################
 
 if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
-  Show-Usage
-  exit
+    Clear-Host
+    Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have four choices:"
+    Write-Host ""
+    Write-Host "1`: Check all components required on the SQL Server (default)"
+    Write-Host "2`: Check connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
+    Write-Host "3`: Perform both 1 and 2 (recommended if sharing this information with Actifio)"
+    Write-Host "4`: Onboard this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed"
+    Write-Host "5`: Show CLI options to run this function without using this menu"
+    Write-Host ""
+    [int]$userselection = Read-Host "Please select from this list (1-5)"
+    if ($userselection -eq "") { $userselection = 1 }
+    if ($userselection -eq 1) {  $srcsql = $TRUE }
+    if ($userselection -eq 2) {  $tgtvdp = $TRUE }
+    if ($userselection -eq 3) {  $tgtvdp = $TRUE 
+        $srcsql = $TRUE}
+    if ($userselection -eq 4) {  $tgtvdp = $TRUE  
+        $ToExec = $TRUE }
+    if ($userselection -eq 5) {  Show-Usage  }
 }
 
 ## Create an object based on the PSObject class
@@ -389,20 +485,20 @@ $thisObject = New-Object -TypeName psobject
 
 Get-SrcWin-Info
 if ($true -eq $srcsql.IsPresent) {
-  Get-SrcSql-Info $VdpIp
+  Get-SrcSql-Info $vdpip
   Get-WinObject-DiskInfo
 }
 
 Show-WinObject-Info
 if ($true -eq $srcsql.IsPresent) {
     Show-WinObject-DiskInfo
-    Show-SqlObject-Info $VdpIp
+    Show-SqlObject-Info $vdpip
 }
 
 
 
 if ($true -eq $tgtvdp.IsPresent) {
-  Get-TgtVdp-Info $VdpIp $VdpUser $VdpPassword $ToExec.IsPresent
+  Get-TgtVDP-Info $vdpip $VDPUser $VDPPassword $ToExec.IsPresent
 }
 
 exit
