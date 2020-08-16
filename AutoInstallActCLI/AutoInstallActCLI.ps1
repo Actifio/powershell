@@ -3,6 +3,7 @@
 ## Purpose: Script to automate the installation of ActPowerCLI on a Windows server.
 #
 # Version 1.0 Initial Release
+# Version 1.1 Updated to handle new Github Locations
 #
 
 <#   
@@ -26,9 +27,9 @@
     To install the ActPowerCLI modules using the zip file c:\temp
 .NOTES   
     Name: AutoInstallActCLI.ps1
-    Author: Michael Chew
+    Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 30-March-2020
-    LastUpdated: 30-March-2020
+    LastUpdated: 16-August-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/AutoInstallActCLI   
 #>
@@ -44,8 +45,7 @@ Param
   [string]$TmpDir = ""
 )  ### Param
 
-$Version = "10.0.0.227"
-$ScriptVersion = "1.0"
+$ScriptVersion = "1.1"
 
 ##################################
 # Function: Download-ActPowerCLI
@@ -54,12 +54,11 @@ $ScriptVersion = "1.0"
 # 
 ##################################
 function Download-ActPowerCLI (
-      [string]$Version,
       [string]$Software )
 {
-  Write-Host "I will be downloading ActPowerCLI version $Version. Yippee!"
+  Write-Host "Downloading ActPowerCLI."
 
-  $url = "https://github.com/Actifio/powershell/raw/master/" + $Software 
+  $url = " https://github.com/Actifio/ActPowerCLI/archive/main.zip"
   $download_path = "$TmpDir\" + $Software 
   
   ## Change the security protocol to use TLSv1.2
@@ -80,53 +79,70 @@ function Download-ActPowerCLI (
 #
 ##################################
 function Install-ActPowerCLI ( 
-  [string]$Version,
   [string]$Software )
 {
-  Write-Host "I will be installing ActPowerCLI version $Version . Yippee!"
-#
-# Location of the ActPowerCLI modules
-#
-  $targetondisk = "$($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules"
-  $download_path = "$TmpDir\" + $Software 
-  #
-  # Copies the module to the appropriate directory and cleanup the folders
-  #
-  
-  $shell = New-Object -ComObject shell.application
-  $zip = $shell.NameSpace($download_path)
-  foreach ($item in $zip.items()) {
-    $shell.Namespace("$TmpDir").CopyHere($item)
-  }
-  
-  Write-Host "Renaming folder" -ForegroundColor Cyan
+    $moduleins = get-module -listavailable -name ActPowerCLI
+    if ($moduleins) {
+        Write-Host "ActPowerCLI Module already installed"
+        # exit 1
+    }
 
-  $WorkDir = $TmpDir + "\ActPowerCLI-" + $Version + "\ActPowerCLI"
-  if (Test-Path -Path $WorkDir) {
-    Move-Item -Path ($WorkDir) -Destination $targetondisk -Force
-    Remove-Item -Path ($TmpDir + "\ActPowerCLI-" + $Version) 
-  } else {
-    Move-Item -Path ($TmpDir + "\ActPowerCLI") -Destination $targetondisk -Force
-  }
+    Write-Host "Installing ActPowerCLI"
+    #
+    # Location of the ActPowerCLI modules
+    #
+    $hostVersionInfo = (get-host).Version.Major
+    if ( $hostVersionInfo -lt "7" )
+    {
+        $targetondisk = "$($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules\ActPowerCLI"
+    }
+    else 
+    {
+        $targetondisk = "$($env:SystemRoot)\PowerShell\Modules\ActPowerCLI"
+    }
 
-  ### PowerShell v5.1
-  ## Expand-Archive -Path $download_path -DestinationPath $targetondisk -Force
+    $download_path = "$TmpDir" +"\main.zip" 
+    #
+    # Copies the module to the appropriate directory and cleanup the folders
+    #
+    $unziptarget = "$TmpDir" + "\ActDownload"
+    Expand-Archive -Path $download_path -DestinationPath $unziptarget -Force
 
-#  Remove-Item -Path $download_path 
+    
+    Write-Host "Renaming folder" -ForegroundColor Cyan
+    if ( $hostVersionInfo -lt "7" )
+    {
+        $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main\ActPowerCLI_PS3"
+        $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
+        $null = Copy-Item $WorkDir\* $targetondisk -Force -Recurse -ErrorAction Stop
+        $null = Test-Path -Path $targetondisk -ErrorAction Stop
+    }
+    else 
+    {
+        $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main"
+        $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
+        $null = Copy-Item $WorkDir\ActPowerCLI* $targetondisk -Force -Recurse -ErrorAction Stop
+        $null = Test-Path -Path $targetondisk -ErrorAction Stop
+    }
 
-# 
-# Install the ActPowerCLI module
-#
-  Write-Host "Module has been installed" -ForegroundColor Green
 
-  Import-Module -Name ActPowerCLI
-  Get-Command -Module ActPowerCLI
+    Remove-Item -Recurse -Path ($TmpDir + "\ActDownload") 
+    Remove-Item -Path ($download_path) 
 
-  (Get-Module ActPowerCLI).Version
 
-  # Get-Module ActPowerCLI -ListAvailable | Remove-Module
-  # Get-Module ActPowerCLI -ListAvailable
-  # Remove-Module -Name ActPowerCLI -Force
+    # 
+    # Install the ActPowerCLI module
+    #
+    Write-Host "Module has been installed" -ForegroundColor Green
+
+    Import-Module -Name ActPowerCLI
+    Get-Command -Module ActPowerCLI
+
+    (Get-Module ActPowerCLI).Version
+
+    # Get-Module ActPowerCLI -ListAvailable | Remove-Module
+    # Get-Module ActPowerCLI -ListAvailable
+    # Remove-Module -Name ActPowerCLI -Force
 }
 
 ##################################
@@ -156,16 +172,16 @@ if ($TmpDir -eq $null -or $TmpDir -eq "") {
   $TmpDir = $($env:TEMP)
   }
 
-$Software = "ActPowerCLI-" + $Version + ".zip"
+$Software = "main.zip"
 
 if ($download) {
-  Download-ActPowerCLI $Version $Software
+  Download-ActPowerCLI  $Software
 }
 
 if ($Install) {
   $PSversion = $($host.version).major
-  if ($PSversion -le 3) {
-    Write-Host "The minimal version of PowerShell for ActPowerCLI is 3.0 and above. Current version is $PSVersion ."
+  if ($PSversion -lt 5) {
+    Write-Host "The minimal version of PowerShell for ActPowerCLI is 5.0 and above. Current version is $PSVersion ."
     Write-Host "Will not install ActPowerCLI. "
     exit
   } 
