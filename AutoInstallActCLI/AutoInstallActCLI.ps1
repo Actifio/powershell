@@ -98,7 +98,7 @@ function Install-ActPowerCLI (
     }
     else 
     {
-        $targetondisk = "$($env:SystemRoot)\PowerShell\Modules\ActPowerCLI"
+        $targetondisk = "$($env:SystemDrive)\Program Files\PowerShell\Modules\ActPowerCLI"
     }
 
     $download_path = "$TmpDir" +"\main.zip" 
