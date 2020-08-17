@@ -22,6 +22,12 @@ The following are options supported:
 * _-ToExec_  This registers the SQL Server with the host
 * _-iscsitest_  This requests an iSCSI test be run
 
+To run VDP Appliance connection tests and onboarding, you need to also use these:
+* _-vdpip_  The IP address of the Appliance
+* _-vdpuser_  The user name to login to the appliance
+* _-vdppassword_  The password to login to the appliance.  You can also use a passwordfile.  If you don't enter a password or file name, you will be securely prompted for a password
+* _-passwordfile_  The password file, rather than typing a plain text password.
+
 ## Sample output:
 The following are sample of the different operations supported:
 If no options are entered then a menu will be displayed.
