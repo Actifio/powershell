@@ -6,6 +6,7 @@
 # Version 1.1 Add disk info, improve script
 # Version 1.2 add menu
 # Version 1.3 add iscsi test
+# Version 1.4 add password file support
 #
 <#   
 .SYNOPSIS   
@@ -19,12 +20,25 @@
 .EXAMPLE
     PS C:\users\johndoe\Desktop> .\OnboardSQL.ps1
 
-    To get help on how to use the script
+    To get a guided menu
 
+.EXAMPLE
     PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser cliuser -vdppasword TopSecret 
 
     To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret). 
 
+.EXAMPLE
+    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser cliuser -passwordfile .\file.key
+
+    To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret) with a stored password file
+
+.EXAMPLE
+    PS > .\OnboardSql.ps1 -srcsql -tgtvdp -iscsitest -vdpip 10.10.10.1 -vdpuser cliuser -passwordfile .\file.key 
+
+    To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret) with a stored password file
+    Also run the iSCSI test.
+
+.EXAMPLE
     PS > .\OnboardSql.ps1 -srcsql -tgtvdp -vdpip 10.10.10.1 -vdpuser cliuser -vdppasword TopSecret -ToExec 
 
     To check the source SQL Server and target VDP appliance (IP address: 10.10.10.1) using the CLI user (cliuser - TopSecret). Also register the source SQL server with VDP appliance.
@@ -33,7 +47,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 16-Aug-2020
+    LastUpdated: 17-Aug-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -47,10 +61,11 @@ Param
   [switch]$iscsitest = $false,  
   [string]$vdpip = "",           
   [string]$vdpuser = "",        
-  [string]$vdppassword = ""   
+  [string]$vdppassword = "",
+  [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.3"
+$ScriptVersion = "1.4"
 
 function Get-SrcWin-Info ()
 {
@@ -58,7 +73,7 @@ function Get-SrcWin-Info ()
 
     ## Find the Windows version on the source Windows Server
     $WinVer = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-    $thisObject | Add-Member -MemberType NoteProperty -Name 'Windows Version' -Value $("$WinVer")
+    $thisObject | Add-Member -MemberType NoteProperty -Name 'WindowsVersion' -Value $("$WinVer")
 
     ## Find the source Windows Server computername
     $thisObject | Add-Member -MemberType NoteProperty -Name ComputerName -Value $("$env:COMPUTERNAME")
@@ -84,11 +99,11 @@ function Get-SrcWin-Info ()
     # look for connector 
     if (! (Test-Path 'HKLM:\SOFTWARE\Actifio Inc')) {
     # Write-Host "Actifio Software is not installed on this host !!"
-    $ActVersion = $Null
+    $ConnectorVersion = $Null
     } else {
-    $ActVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
+    $ConnectorVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
     }
-    $thisObject | Add-Member -MemberType NoteProperty -Name ActVersion -Value $ActVersion  
+    $thisObject | Add-Member -MemberType NoteProperty -Name ConnectorVersion -Value $ConnectorVersion  
 }
 
 function Get-WinObject-DiskInfo ()
@@ -181,7 +196,6 @@ function Get-SrcSql-Info ([string]$vdpip)
 
   $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters     
 
-  
 }      
 
 ##################################
@@ -191,9 +205,6 @@ function Get-SrcSql-Info ([string]$vdpip)
 # 
 ##################################
 function Get-TgtVDP-Info (
-  [string]$vdpip,             
-  [string]$VDPUser,            
-  [string]$VDPPassword,
   [bool]$WillExec
 )
 {
@@ -227,8 +238,24 @@ function Get-TgtVDP-Info (
         exit 1
     }
 
-    if ( (!($env:ACTSESSIONID ))  -and (!($ACTSESSIONID)) ){
-    $rc = connect-act -acthost $vdpip -actuser $VDPUser -password $VDPPassword -ignorecerts
+    if ( (!($env:ACTSESSIONID ))  -and (!($ACTSESSIONID)) )
+    {
+        if ($passwordfile)
+        { 
+            if ((Test-Path $passwordfile) -eq "True")
+            {
+                $rc = connect-act -acthost $vdpip -actuser $VDPUser -passwordfile $passwordfile -ignorecerts
+            }
+            else 
+            {
+                Write-host "Cannot find password file $passwordfile"
+                exit 1    
+            }
+        }
+        else 
+        {
+            $rc = connect-act -acthost $vdpip -actuser $vdpuser -password $vdppassword -ignorecerts
+        }
     }
 
     if ( (!($env:ACTSESSIONID ))  -and (!($ACTSESSIONID)) ) {
@@ -241,10 +268,18 @@ function Get-TgtVDP-Info (
     # write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 5106"
     $rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
 
-    if ( $(($rc).result).Contains("succeeded!") ) {
-    write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
-    } else {
-    write-host "---> Failed: VDP unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
+    if ($rc.result)
+    {
+        if ( $(($rc).result).Contains("succeeded!") ) {
+        write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
+        } else {
+        write-host "---> Failed: VDP unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 5106"
+        }
+    }
+    elseif  ($rc.errorcode)
+    {
+        $rc
+        exit 1
     }
 
     #write-host "`nTesting the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 443"
@@ -270,11 +305,10 @@ function Get-TgtVDP-Info (
     }
     if ((!($hostid)) -and ($env:USERDNSDOMAIN))
     {
-        $secondchancelookup = $(($thisObject).ComputerName) + "." + $env:USERDNSDOMAIN.ToLower()
-        $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $secondchancelookup } | Select-Object Id).Id
+        $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).FQDN) } | Select-Object Id).Id
         if ($hostid)
         {
-            write-host "Passed:  $secondchancelookup is already defined in the VDP appliance as host ID $hostid. No registration required! "
+            write-host "Passed:  $(($thisObject).FQDN) is already defined in the VDP appliance as host ID $hostid. No registration required! "
         }
     }
 
@@ -338,7 +372,7 @@ function Get-TgtVDP-Info (
         Invoke-Expression $cmd | Sort-Object apptype,appname | Format-Table * 
     #} 
 
-    if (($thisObject).'ActVersion') 
+    if (($thisObject).'ConnectorVersion') 
     {
         write-host "`n* TEST:  Checking Connector version of $(($thisObject).ComputerName) compared to latest available on VDP appliance $vdpip"
         $connectorgrab = reportconnectors -a $hostid
@@ -348,7 +382,7 @@ function Get-TgtVDP-Info (
         }   
         elseif ($connectorgrab.VersionCheck -eq "Newer Version")
         {
-            write-host "Partial:  Installed Connector ($thisObject).'ActVersion' is on a higher release than the VDP Applianceversion" $connectorgrab.AvailableVersion
+            write-host "Partial:  Installed Connector ($thisObject).'ConnectorVersion' is on a higher release than the VDP Applianceversion" $connectorgrab.AvailableVersion
         }
         elseif ( $connectorgrab.VersionCheck -eq "Upgrade Needed")
         {
@@ -380,7 +414,7 @@ function Get-TgtVDP-Info (
 ##################################
 function Show-Usage ()
 {
-    write-host "Usage: .\OnboardSql.ps1 [ -srcsql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <VDP IP appliance> [ -vdpuser <VDP CLI user> ] [ -vdppassword <VDP password> ] `n"
+    write-host "Usage: .\OnboardSql.ps1 [ -srcsql ] [ -tgtvdp ] [ -ToExec ] [ -vdpip <VDP IP appliance> [ -vdpuser <VDP CLI user> ] [ -vdppassword <VDP password> ] [ -passwordfile <stored password> ]`n"
     write-host " get-help .\OnboardSql.ps1 -examples"
     write-host " get-help .\OnboardSql.ps1 -detailed"
     write-host " get-help .\OnboardSql.ps1 -full"    
@@ -393,9 +427,9 @@ function Show-WinObject-Info ()
   write-Host "            Computer Name: $(($thisObject).ComputerName) "
   write-Host "               IP Address: $(($thisObject).IPAddress) "
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
-  write-Host "                       OS: $(($thisObject).'Windows Version')"
+  write-Host "                       OS: $(($thisObject).'WindowsVersion')"
   write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
-  write-Host "        Actifio Connector: $(($thisObject).'ActVersion')`n"
+  write-Host "        Actifio Connector: $(($thisObject).'ConnectorVersion')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
   
 }
@@ -511,15 +545,16 @@ if ($true -eq $srcsql.IsPresent) {
 }
 
 Show-WinObject-Info
-if ($true -eq $srcsql.IsPresent) {
+if ($true -eq $srcsql.IsPresent) 
+{
     Show-WinObject-DiskInfo
     Show-SqlObject-Info $vdpip
 }
-
-
-
-if ($true -eq $tgtvdp.IsPresent) {
-  Get-TgtVDP-Info $vdpip $VDPUser $VDPPassword $ToExec.IsPresent
+if ($true -eq $tgtvdp.IsPresent) 
+{
+    Get-TgtVDP-Info $ToExec.IsPresent
 }
+
+
 
 exit
