@@ -7,6 +7,7 @@
 # Version 1.2 add menu
 # Version 1.3 add iscsi test
 # Version 1.4 add password file support
+# Version 1.5 improve menu, add iSCSI onboarding, improve unbounded message
 #
 <#   
 .SYNOPSIS   
@@ -65,7 +66,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.4"
+$ScriptVersion = "1.5"
 
 function Get-SrcWin-Info ()
 {
@@ -121,6 +122,13 @@ function Get-WinObject-DiskInfo ()
         $deviceID = "Win32_Volume.DeviceID=`"\\\\?\\" + $deviceID + "\`""
         $vssgrab = Get-WmiObject -Class win32_shadowstorage -ErrorAction SilentlyContinue | Where-Object {$_.Volume -eq $deviceID}
         $diffname = (Get-WmiObject -Class win32_volume | Where-Object {$_.__RELPATH -eq $vssgrab.DiffVolume}).Name
+        if ($vssgrab.MaxSpace -eq "18446744073709551615")
+        {
+            $vss_maxspaceGiB = "Unbounded"
+        }
+        else {
+            $vss_maxspaceGiB = [math]::round($vssgrab.MaxSpace/1GB, 2)
+        }
         $vssobject += [pscustomobject]@{
             name = $drive.Name
             label = $drive.Label
@@ -130,7 +138,7 @@ function Get-WinObject-DiskInfo ()
             vssdiff = $diffname
             vss_usedspaceGiB = [math]::round($vssgrab.UsedSpace/1GB, 2)
             vss_allocspaceGiB = [math]::round($vssgrab.AllocatedSpace/1GB, 2)
-            vss_maxspaceGiB = [math]::round($vssgrab.MaxSpace/1GB, 2)
+            vss_maxspaceGiB = $vss_maxspaceGiB
         }
     }
     $script:vssobject = $vssobject
@@ -138,63 +146,61 @@ function Get-WinObject-DiskInfo ()
 
 function Get-SrcSql-Info ([string]$vdpip)
 {
-  Write-Host "Gathering information on Sql Server Host. "
+ 
 
-  ## Get the status of iSCSI service : Running, Stopped
-  $iSCSIStatus = $(get-service msiscsi).status
-  $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIStatus -Value $("$iSCSIStatus")
+    if (($iscsitest.IsPresent) -and ($ToExec.IsPresent))
+    {
+        Write-Host "Ensuring all iSCSI related services are setup correctly."
+        Start-Service msiscsi
+        Set-Service msiscsi -startuptype "automatic"
+        Set-NetFirewallRule -Name MsiScsi-In-TCP -Enabled True
+        Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
+    }
 
-  ## Get the status of firewall for iSCSI service : "Running", "Stopped"
-  $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
+    Write-Host "Gathering information on Sql Server Host. "
+    ## Get the status of iSCSI service : Running, Stopped
+    $iSCSIStatus = $(get-service msiscsi).status
+    $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIStatus -Value $("$iSCSIStatus")
 
-  Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
+    ## Get the status of firewall for iSCSI service : "Running", "Stopped"
+    $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
+
+    Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
     $Label = $_.Name + "Firewall"
     $thisObject | Add-Member -MemberType NoteProperty -Name $Label  -Value ($_.Enabled).ToString()
-  }
+    }
 
-  ## $iSCSIfwIn.Enabled , $iscsifwOut.Enabled : "True"
-  $iSCSIfwIn = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-In-TCP"}
-  $iscsifwOut = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-Out-TCP"}
+    ## $iSCSIfwIn.Enabled , $iscsifwOut.Enabled : "True"
+    $iSCSIfwIn = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-In-TCP"}
+    $iscsifwOut = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-Out-TCP"}
 
-  $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwInStatus -Value ($($iSCSIfwIn.Enabled)).ToString()
-  $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwOutStatus -Value ($($iSCSIfwOut.Enabled)).ToString()
+    $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwInStatus -Value ($($iSCSIfwIn.Enabled)).ToString()
+    $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwOutStatus -Value ($($iSCSIfwOut.Enabled)).ToString()
 
-  ## Start-Service msiscsi
-  ## Set-Service msiscsi -startuptype "automatic"
-  ## Set-NetFirewallRule -Name MsiScsi-In-TCP -Enabled True
-  ## Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
-
-
-
-  if (! (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server')) {
+    if (! (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server')) {
     $SQLInstalled = $False
     $SQLInstances = $Null
-  } else {
+    } else {
     $SQLInstalled = $True
     $SQLInstances = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server').InstalledInstances
-    #foreach ($sql in $SQLInstances) {
-    #  [PSCustomObject]@{
-    #    InstanceName = $sql
-    #  }
-    #}
-  }
-  $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
-  $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
+    }
+    $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
+    $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
 
-  if ($vdpip -ne $null -And $vdpip -ne "") {
+    if ($vdpip -ne $null -And $vdpip -ne "") {
     $Pingable = Test-Connection $VDPIP -Count 1 -Quiet
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable    
-  } else {
+    } else {
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
-  }
+    }
 
 
-  $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
-  Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
-     @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
-     @{Label="LastError"; Expression={$_.Context.PostContext[3].Trim().SubString(12)}})
+    $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
+    Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
+        @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
+        @{Label="LastError"; Expression={$_.Context.PostContext[3].Trim().SubString(12)}})
 
-  $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters     
+    $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters     
 
 }      
 
@@ -265,7 +271,6 @@ function Get-TgtVDP-Info (
 
     write-Host "`n--------- S T A T U S      R E P O R T      P A R T 2 ----------------------------------`n"  
     write-host "`n* TEST:  Testing the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 5106 (connector port)"
-    # write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 5106"
     $rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 5106
 
     if ($rc.result)
@@ -282,21 +287,6 @@ function Get-TgtVDP-Info (
         exit 1
     }
 
-    #write-host "`nTesting the connection from VDP appliance to SQL Server $(($thisObject).IPAddress) on port 443"
-    #write-host "> udstask testconnection -type tcptest -targetip $(($thisObject).IPAddress) -targetport 443"
-    #$rc = udstask testconnection -type tcptest -targetip $thisObject.IPAddress -targetport 443
-    #if ( $(($rc).result).Contains("succeeded!") ) {
-    #  write-host "Passed: VDP is able to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-    #} else {
-    #  write-host "---> Failed: VDP unable to communicate with the SQL Server $(($thisObject).IPAddress) on port 443"
-    #}
-
-
-
-    # write-host "`n> udsinfo lsconfiguredinterface"
-    # write-host "The network interface on the VDP appliance = $((udsinfo lsconfiguredinterface | select IPAddress).ipaddress) `n"
-
-
     write-host "`n* TEST:  Checking if this host is already defined to the VDP Appliance"
     $hostid = $(udsinfo lshost | Where-Object { $_.hostname -eq $(($thisObject).ComputerName) } | Select-Object Id).Id
     if ($hostid)
@@ -311,16 +301,6 @@ function Get-TgtVDP-Info (
             write-host "Passed:  $(($thisObject).FQDN) is already defined in the VDP appliance as host ID $hostid. No registration required! "
         }
     }
-
-
-    #if ($false -eq $WillExec)
-    #{
-    #  write-host ""
-    #  write-host "******  The commands shown below are not being executed, because -ToExec was not specified."  
-    #  Write-host "******  You can run them manually or run again with -ToExec"
-    #  write-host ""
-    #}
-
 
     if ( (!($hostid)) -and ($true -eq $WillExec))
     {
@@ -502,13 +482,13 @@ if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     Clear-Host
     Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have four choices:"
     Write-Host ""
-    Write-Host "1`: Check all components required on the SQL Server (default)"
-    Write-Host "2`: Check network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
-    Write-Host "3`: Check iSCSI and network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
-    Write-Host "4`: Perform both 1 and 2 (recommended if sharing this information with Actifio)"
-    Write-Host "5`: Perform both 1 and 3 (recommended if sharing this information with Actifio and host iSCSI is in use)"
-    Write-Host "6`: Onboard this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed"
-    Write-Host "7`: Onboard this host to a VDP Appliance with iSCSI (needs ActPowerCLI PowerShell Module installed"
+    Write-Host "1`: CHECK SQL - Check all components required on the SQL Server (default)"
+    Write-Host "2`: CHECK NETWORK - Check network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
+    Write-Host "3`: CHECK NETWORK & ISCSI - Check connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
+    Write-Host "4`: CHECK 1 & 2 (recommended if sharing this information with Actifio and host iSCSI is NOT in use)"
+    Write-Host "5`: CHECK 1 & 3 (recommended if sharing this information with Actifio and host iSCSI is in use)"
+    Write-Host "6`: ONBOARD WITHOUT ISCSI - Onboard this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed"
+    Write-Host "7`: ONBOARD WITH ISCSI - Onboard this host to a VDP Appliance with iSCSI (needs ActPowerCLI PowerShell Module installed"
     Write-Host "8`: Show CLI options to run this function without using this menu"
     Write-Host ""
     [int]$userselection = Read-Host "Please select from this list (1-8)"
@@ -527,7 +507,10 @@ if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     if ($userselection -eq 6) {  $tgtvdp = $TRUE  
         $ToExec = $TRUE 
         $iscsitest = $FALSE}
-    if ($userselection -eq 7) {  $tgtvdp = $TRUE  
+    if ($userselection -eq 7) 
+    {
+        $srcsql = $TRUE  
+        $tgtvdp = $TRUE  
         $ToExec = $TRUE 
         $iscsitest = $TRUE}
     if ($userselection -eq 8) {  Show-Usage  }
