@@ -81,24 +81,33 @@ function Download-ActPowerCLI (
 function Install-ActPowerCLI ( 
   [string]$Software )
 {
-    $moduleins = get-module -listavailable -name ActPowerCLI
-    if ($moduleins) {
-        Write-Host "ActPowerCLI Module already installed"
-        # exit 1
+    $modulebase = (get-module -listavailable -name ActPowerCLI).modulebase
+    if ($modulebase) {
+        Write-Host "`nActPowerCLI Module already installed in:"
+        foreach ($base in $modulebase)
+        {
+            write-host "    $base"
+        }
     }
 
-    Write-Host "Installing ActPowerCLI"
-    #
-    # Location of the ActPowerCLI modules
-    #
-    $hostVersionInfo = (get-host).Version.Major
-    if ( $hostVersionInfo -lt "7" )
+    if (!($modulebase))
     {
-        $targetondisk = "$($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules\ActPowerCLI"
+        Write-Host "`nInstalling ActPowerCLI`n"
+        #
+        # Location of the ActPowerCLI modules
+        #
+        $hostVersionInfo = (get-host).Version.Major
+        if ( $hostVersionInfo -lt "7" )
+        {
+            $targetondisk = "$($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules\ActPowerCLI"
+        }
+        else 
+        {
+            $targetondisk = "$($env:SystemDrive)\Program Files\PowerShell\Modules\ActPowerCLI"
+        }
     }
-    else 
-    {
-        $targetondisk = "$($env:SystemDrive)\Program Files\PowerShell\Modules\ActPowerCLI"
+    else {
+        Write-Host "`nUpgrading ActPowerCLI"
     }
 
     $download_path = "$TmpDir" +"\main.zip" 
@@ -109,22 +118,50 @@ function Install-ActPowerCLI (
     Expand-Archive -Path $download_path -DestinationPath $unziptarget -Force
 
     
-    Write-Host "Renaming folder" -ForegroundColor Cyan
-    if ( $hostVersionInfo -lt "7" )
+    Write-Host "Copying files" -ForegroundColor Cyan
+    if (!($modulebase))
     {
-        $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main\ActPowerCLI_PS3"
-        $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
-        $null = Copy-Item $WorkDir\* $targetondisk -Force -Recurse -ErrorAction Stop
-        $null = Test-Path -Path $targetondisk -ErrorAction Stop
+        if ( $hostVersionInfo -lt "7" )
+        {
+            $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main\ActPowerCLI_PS3"
+            $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
+            $null = Copy-Item $WorkDir\* $targetondisk -Force -Recurse -ErrorAction Stop
+            $null = Test-Path -Path $targetondisk -ErrorAction Stop
+        }
+        else 
+        {
+            $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main"
+            $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
+            $null = Copy-Item $WorkDir\ActPowerCLI* $targetondisk -Force -Recurse -ErrorAction Stop
+            $null = Test-Path -Path $targetondisk -ErrorAction Stop
+        }
+        Write-Host "Module has been installed" -ForegroundColor Green
     }
     else 
     {
-        $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main"
-        $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
-        $null = Copy-Item $WorkDir\ActPowerCLI* $targetondisk -Force -Recurse -ErrorAction Stop
-        $null = Test-Path -Path $targetondisk -ErrorAction Stop
+        if ( $hostVersionInfo -lt "7" )
+        {
+            foreach ($base in $modulebase)
+            {   
+                Write-host "Upgrading $base"
+                $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main\ActPowerCLI_PS3"
+                $null = Copy-Item $WorkDir\* $base -Force -Recurse -ErrorAction Stop
+                $null = Test-Path -Path $base -ErrorAction Stop
+                Write-Host "Module has been upgraded" -ForegroundColor Green
+            }
+        }
+        else 
+        {
+            foreach ($base in $modulebase)
+            {
+                Write-host "Upgrading $base"
+                $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main"
+                $null = Copy-Item $WorkDir\ActPowerCLI* $base -Force -Recurse -ErrorAction Stop
+                $null = Test-Path -Path $base -ErrorAction Stop
+                Write-Host "Module has been upgraded" -ForegroundColor Green
+            }
+        }
     }
-
 
     Remove-Item -Recurse -Path ($TmpDir + "\ActDownload") 
     Remove-Item -Path ($download_path) 
@@ -133,7 +170,7 @@ function Install-ActPowerCLI (
     # 
     # Install the ActPowerCLI module
     #
-    Write-Host "Module has been installed" -ForegroundColor Green
+    
 
     Import-Module -Name ActPowerCLI
     Get-Command -Module ActPowerCLI
