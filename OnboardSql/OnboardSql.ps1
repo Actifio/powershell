@@ -463,14 +463,26 @@ function Show-SqlObject-Info (
   }
   if ($null -eq  $(($thisObject).VssWriters)) {
     write-Host "              VSS Writers: Not Installed "
-  } else {
+  } 
+  else 
+  {
     $(($thisObject).VssWriters) | ForEach-Object { 
-    write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
-      }
-  }
-  write-Host "`n---------------------------------------------------------------------------`n"
+    if ($_.State -eq "Stable")
+        {
+            write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
+        } 
+        }
+    $(($thisObject).VssWriters) | ForEach-Object { 
+    if ($_.State -ne "Stable")
+        {
+            write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor red -BackgroundColor white
+        } 
+        }
+    }
+    write-Host "`n---------------------------------------------------------------------------`n"
 
-}     ### end of function
+}     ### end of function 
+
 
 ##############################
 #
