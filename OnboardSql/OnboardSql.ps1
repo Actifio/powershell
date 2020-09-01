@@ -467,20 +467,22 @@ function Show-SqlObject-Info (
   } 
   else 
   {
-    $(($thisObject).VssWriters) | ForEach-Object { 
-    if ($_.State -eq "Stable")
+    $(($thisObject).VssWriters) | ForEach-Object 
+    { 
+        if ($_.State -eq "Stable")
         {
             write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
         } 
-    elseif ($_.State -eq "Failed")
+        elseif ($_.State -eq "Failed")
         {
             write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor red -BackgroundColor white
         } 
-    else 
-    {
-        write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor Black -BackgroundColor white
-    } 
+        else 
+        {
+            write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor Black -BackgroundColor white
+        } 
     }
+  }
     write-Host "`n---------------------------------------------------------------------------`n"
 
 }     ### end of function 
