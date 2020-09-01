@@ -8,6 +8,7 @@
 # Version 1.3 add iscsi test
 # Version 1.4 add password file support
 # Version 1.5 improve menu, add iSCSI onboarding, improve unbounded message
+# Version 1.6 improve VSS reporting
 #
 <#   
 .SYNOPSIS   
@@ -48,7 +49,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 17-Aug-2020
+    LastUpdated: 1-Sept-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -471,13 +472,14 @@ function Show-SqlObject-Info (
         {
             write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
         } 
-        }
-    $(($thisObject).VssWriters) | ForEach-Object { 
-    if ($_.State -ne "Stable")
+    elseif ($_.State -eq "Failed")
         {
             write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor red -BackgroundColor white
         } 
-        }
+    else 
+    {
+        write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  -ForegroundColor Black -BackgroundColor white
+    } 
     }
     write-Host "`n---------------------------------------------------------------------------`n"
 
