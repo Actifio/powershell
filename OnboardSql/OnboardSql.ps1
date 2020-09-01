@@ -467,8 +467,7 @@ function Show-SqlObject-Info (
   } 
   else 
   {
-    $(($thisObject).VssWriters) | ForEach-Object 
-    { 
+    $(($thisObject).VssWriters) | ForEach-Object { 
         if ($_.State -eq "Stable")
         {
             write-Host "     VSS Writer [ State ]: $($_.Writer) [ $($_.State) ] ( $($_.LastError) )"  
