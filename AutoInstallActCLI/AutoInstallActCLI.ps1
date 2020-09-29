@@ -10,7 +10,7 @@
 .SYNOPSIS   
    Download and install ActPowerCLI on a Windows host.
 .DESCRIPTION 
-   This is a powershell script that helps you auomate the process of installing ActPowerCLI modules from the Actifio github site. It can automate the download and installation process.
+   This is a powershell script that helps you automate the process of installing ActPowerCLI modules from the Actifio github site. It can automate the download and installation process.
 .PARAMETER action
     To enable the download of ActPowerCLI software, use -download. To install it, use the -install switch. Use the -TmpDir directory if you want to specify a working temporary directory for the zipped file.
 .EXAMPLE
@@ -45,7 +45,7 @@ Param
   [string]$TmpDir = ""
 )  ### Param
 
-$ScriptVersion = "1.1"
+
 
 ##################################
 # Function: Download-ActPowerCLI
@@ -217,8 +217,8 @@ if ($download) {
 
 if ($Install) {
   $PSversion = $($host.version).major
-  if ($PSversion -lt 5) {
-    Write-Host "The minimal version of PowerShell for ActPowerCLI is 5.0 and above. Current version is $PSVersion ."
+  if ($PSversion -lt 4) {
+    Write-Host "The minimal version of PowerShell for ActPowerCLI is 4.0 and above. Current version is $PSVersion ."
     Write-Host "Will not install ActPowerCLI. "
     exit
   } 
@@ -226,13 +226,16 @@ if ($Install) {
   ## 
   ## 394802 = .NET Framework 4.6.2
   ## 378389 = .NET Framework 4.5
-  if ( (Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 378388 ) {
-    Install-ActPowerCLI $Version $Software
-    } else {
-      Write-Host "The minimal .NET Framework version required for ActPowerCLI is 4.5 and above. "
-      Write-Host "Will not install ActPowerCLI. "    
-      exit
-    }
+  if ($PSversion -lt 5) 
+  {
+    if ( (Get-ItemProperty "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full").Release -ge 378388 ) {
+        Install-ActPowerCLI $Version $Software
+        } else {
+        Write-Host "The minimal .NET Framework version required for ActPowerCLI is 4.5 and above. "
+        Write-Host "Will not install ActPowerCLI. "    
+        exit
+        }
+  }
 }
 
 exit
