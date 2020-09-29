@@ -97,7 +97,7 @@ function Install-ActPowerCLI (
         # Location of the ActPowerCLI modules
         #
         $hostVersionInfo = (get-host).Version.Major
-        if ( $hostVersionInfo -lt "7" )
+        if ( $hostVersionInfo -lt "6" )
         {
             $targetondisk = "$($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules\ActPowerCLI"
         }
@@ -121,7 +121,7 @@ function Install-ActPowerCLI (
     Write-Host "Copying files" -ForegroundColor Cyan
     if (!($modulebase))
     {
-        if ( $hostVersionInfo -lt "7" )
+        if ( $hostVersionInfo -lt "5" )
         {
             $WorkDir = $TmpDir + "\ActDownload\ActPowerCLI-main\ActPowerCLI_PS3"
             $null = New-Item -ItemType Directory -Path $targetondisk -Force -ErrorAction Stop
@@ -139,7 +139,7 @@ function Install-ActPowerCLI (
     }
     else 
     {
-        if ( $hostVersionInfo -lt "7" )
+        if ( $hostVersionInfo -lt "5" )
         {
             foreach ($base in $modulebase)
             {   
