@@ -9,10 +9,14 @@ You will need to start a command prompt and run it as administrator. Launch powe
 ## Parameters
 
 The following are parameters supported:
-* _-download_  This wll download the ActPowerCLI-x.y.z.w.zip from the Actifio github repository.  
-* _-install_  This will extract the zip files and copy them to c:\windows\system32\windowspowershell\v1.0\module directory.
 * _-TmpDir_  Specify the working directory and it be used as the temporary directory that hold the zipped file.
+* _-download_  This wll download the ActPowerCLI-x.y.z.w.zip from the Actifio github repository.  
+* _-install_  This will extract the zip files and copy them to either:
 
+```
+PowerShell 5:  $($env:SystemRoot)\System32\WindowsPowerShell\v1.0\Modules\ActPowerCLI"
+PowerShell 7:  "$($env:SystemDrive)\Program Files\PowerShell\Modules\ActPowerCLI"
+```
 
 ## Sample output:
 The following are sample of the different options supported:
