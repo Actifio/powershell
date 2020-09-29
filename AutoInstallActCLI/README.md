@@ -2,6 +2,10 @@
 
 This powershell script automates the installation of the ActPowerCLI. It allows you to download the ActPowerCLI-x.y.z.w.zip and copies the files into the c:\windows\system32\windowspowershell\v1.0\module directory.
 
+## What version of PowerShell will this work with?
+
+PowerShell 5 and above.   
+
 ## How does this work?
 
 You will need to start a command prompt and run it as administrator. Launch powershell and run the AutoInstallActCLI.ps1 with the appropriate parameters.
@@ -37,4 +41,8 @@ PS C:\Users\johndoe\Desktop> .\AutoInstallActCLI.ps1 -install -TmpDir c:\temp
 To download and install the latest ActPowerCLI zipped file (ActPowerCLI-x.y.z.w.zip)
 ```
 PS C:\Users\johndoe\Desktop> .\AutoInstallActCLI.ps1 -download -install 
+```
+You can also use just -i and -d like this:
+```
+PS C:\Users\johndoe\Desktop> .\AutoInstallActCLI.ps1 -d -i 
 ```
