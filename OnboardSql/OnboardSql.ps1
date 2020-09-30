@@ -423,7 +423,7 @@ function Show-WinObject-DiskInfo ()
     }
     else 
     {
-        write-host "No Drive Information was found"
+        write-host "No Drive Information was found" -ForegroundColor red -BackgroundColor white
     }
     write-Host "`n---------------------------------------------------------------------------`n"
 }
@@ -446,24 +446,24 @@ function Show-SqlObject-Info (
     if ( Test-Connection $vdpip -Count 2 -Quiet ) {
       write-Host "  Actifio VDP Ip Pingable: True "
     } else {
-      write-Host "  Actifio VDP Ip Pingable: False "
+      write-Host "  Actifio VDP Ip Pingable: False " -ForegroundColor red -BackgroundColor white
     }    
   }
 
   if ($False -eq $(($thisObject).SqlInstalled)) {
-    write-Host "            SQL Server SW: Not Installed " 
+    write-Host "            SQL Server SW: Not Installed " -ForegroundColor red -BackgroundColor white
   } else {
     write-Host "            SQL Server SW: Installed "
   }
   if ($null -eq  $(($thisObject).SqlInstances)) {
-    write-Host "             SQL Instance: No Instances Created "
+    write-Host "             SQL Instance: No Instances Created " -ForegroundColor red -BackgroundColor white
   } else {
     $(($thisObject).SqlInstances) | ForEach-Object { 
     write-Host "             SQL Instance: $_ "  
       }
   }
   if ($null -eq  $(($thisObject).VssWriters)) {
-    write-Host "              VSS Writers: Not Installed "
+    write-Host "              VSS Writers: Not Installed " -ForegroundColor red -BackgroundColor white
   } 
   else 
   {
@@ -495,7 +495,7 @@ function Show-SqlObject-Info (
 
 if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     Clear-Host
-    Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have four choices:"
+    Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have several choices:"
     Write-Host ""
     Write-Host "1`: CHECK SQL - Check all components required on the SQL Server (default)"
     Write-Host "2`: CHECK NETWORK - Check network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
