@@ -52,7 +52,7 @@
     DateCreated: 3-April-2020
     LastUpdated: 30-Sept-2020
 .LINK
-    https://github.com/Actifio/powershell/blob/master/OnboardSql   
+    https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
 
 [CmdletBinding()]
