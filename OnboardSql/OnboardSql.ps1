@@ -9,6 +9,7 @@
 # Version 1.4 add password file support
 # Version 1.5 improve menu, add iSCSI onboarding, improve unbounded message
 # Version 1.6 improve VSS reporting
+# Version 1.7 improve visual alerts
 #
 <#   
 .SYNOPSIS   
@@ -49,7 +50,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 1-Sept-2020
+    LastUpdated: 30-Sept-2020
 .LINK
     https://github.com/Actifio/powershell/blob/master/OnboardSql   
 #>
@@ -67,7 +68,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.5"
+$ScriptVersion = "1.6"
 
 function Get-SrcWin-Info ()
 {
@@ -195,7 +196,7 @@ function Get-SrcSql-Info ([string]$vdpip)
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
     }
 
-
+    $VssWriters = ""
     $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
     Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
         @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
@@ -423,7 +424,7 @@ function Show-WinObject-DiskInfo ()
     }
     else 
     {
-        write-host "No Drive Information was found"
+        write-host "No Drive Information was found" -ForegroundColor red -BackgroundColor white
     }
     write-Host "`n---------------------------------------------------------------------------`n"
 }
@@ -446,27 +447,33 @@ function Show-SqlObject-Info (
     if ( Test-Connection $vdpip -Count 2 -Quiet ) {
       write-Host "  Actifio VDP Ip Pingable: True "
     } else {
-      write-Host "  Actifio VDP Ip Pingable: False "
+      write-Host "  Actifio VDP Ip Pingable: False " -ForegroundColor red -BackgroundColor white
     }    
   }
 
   if ($False -eq $(($thisObject).SqlInstalled)) {
-    write-Host "            SQL Server SW: Not Installed " 
+    write-Host "            SQL Server SW: Not Installed " -ForegroundColor red -BackgroundColor white
   } else {
     write-Host "            SQL Server SW: Installed "
   }
   if ($null -eq  $(($thisObject).SqlInstances)) {
-    write-Host "             SQL Instance: No Instances Created "
+    write-Host "             SQL Instance: No Instances Created " -ForegroundColor red -BackgroundColor white
   } else {
     $(($thisObject).SqlInstances) | ForEach-Object { 
     write-Host "             SQL Instance: $_ "  
       }
   }
   if ($null -eq  $(($thisObject).VssWriters)) {
-    write-Host "              VSS Writers: Not Installed "
+    write-Host "              VSS Writers: Not Installed " -ForegroundColor red -BackgroundColor white
   } 
   else 
   {
+	# if we cannot find SqlServerWriter then we need to highlight this
+    $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | select Writer).writer
+    if ($sqlvsscheck -eq $null)
+    {
+        write-Host "              VSS Writers: SqlServerWriter not found!" -ForegroundColor red -BackgroundColor white
+    }
     $(($thisObject).VssWriters) | ForEach-Object { 
         if ($_.State -eq "Stable")
         {
@@ -495,7 +502,7 @@ function Show-SqlObject-Info (
 
 if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     Clear-Host
-    Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have four choices:"
+    Write-Host "This is the Actifio Onboarding tool for MicroSoft SQL.   You have have several choices:"
     Write-Host ""
     Write-Host "1`: CHECK SQL - Check all components required on the SQL Server (default)"
     Write-Host "2`: CHECK NETWORK - Check network connectivity for this host to a VDP Appliance (needs ActPowerCLI PowerShell Module installed)"
