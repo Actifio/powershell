@@ -195,7 +195,7 @@ function Get-SrcSql-Info ([string]$vdpip)
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
     }
 
-
+    $VssWriters = ""
     $VssWriters = @(vssadmin list writers | Select-String -Context 0,4 '^writer name:' | 
     Select @{Label="Writer"; Expression={$_.Line.Trim("'").SubString(14)}}, 
         @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
@@ -467,6 +467,12 @@ function Show-SqlObject-Info (
   } 
   else 
   {
+	# if we cannot find SqlServerWriter then we need to highlight this
+    $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | select Writer).writer
+    if ($sqlvsscheck -eq $null)
+    {
+        write-Host "              VSS Writers: SqlServerWriter not found!" -ForegroundColor red -BackgroundColor white
+    }
     $(($thisObject).VssWriters) | ForEach-Object { 
         if ($_.State -eq "Stable")
         {
