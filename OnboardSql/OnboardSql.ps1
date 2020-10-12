@@ -10,6 +10,7 @@
 # Version 1.5 improve menu, add iSCSI onboarding, improve unbounded message
 # Version 1.6 improve VSS reporting
 # Version 1.7 improve visual alerts
+# Version 1.8 added HTML output
 #
 <#   
 .SYNOPSIS   
@@ -50,7 +51,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 30-Sept-2020
+    LastUpdated: 12-Oct-2020
 .LINK
     https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
@@ -68,7 +69,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.6"
+$ScriptVersion = "1.8"
 
 function Get-SrcWin-Info ()
 {
@@ -493,6 +494,30 @@ function Show-SqlObject-Info (
 
 }     ### end of function 
 
+##################################
+# Function: New-HTMLReport 
+#
+##################################
+function New-HTMLReport 
+{
+    $OSinfo = $thisobject | ConvertTo-Html -As List -Property ComputerName,IPAddress,FQDN,WindowsVersion,PowerShellVersion,ConnectorVersion -Fragment -PreContent "<h2>Operating System Information</h2>"
+    if ($vssobject)
+    {
+        $driveinfo = $vssobject | ConvertTo-Html -Fragment -PreContent "<h2>Drive Information</h2>"
+    }
+    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"
+
+    $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>"
+
+    #The command below will combine all the information gathered into a single HTML report
+    $Report = ConvertTo-HTML -Body "$OSinfo $driveinfo $firewallinfo $vssinfo" -Title "SQL Health Check Report" 
+
+    #The command below will generate the report to an HTML file
+    $Report | Out-File .\SQL-Health-Check-Report.html
+}
+
+
+
 
 ##############################
 #
@@ -550,10 +575,12 @@ if ($true -eq $srcsql.IsPresent) {
 }
 
 Show-WinObject-Info
+
 if ($true -eq $srcsql.IsPresent) 
 {
     Show-WinObject-DiskInfo
     Show-SqlObject-Info $vdpip
+    New-HTMLReport
 }
 if ($true -eq $tgtvdp.IsPresent) 
 {
