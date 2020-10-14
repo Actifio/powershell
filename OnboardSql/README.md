@@ -5,6 +5,7 @@ This is a powershell script that helps on-board a SQL Server to the VDP applianc
 ## How does this work?
 
 It relies on two switches i.e. -srcsql or -tgtvdp . Either switch or both switches need to be specified when using the script.
+If you don't specify either switch you will get a selection menu.
 
 ## Supported PowerShell versions
 
@@ -31,6 +32,11 @@ To run VDP Appliance connection tests and onboarding, you need to also use these
 ## Sample output:
 The following are sample of the different operations supported:
 If no options are entered then a menu will be displayed.
+
+## HTML output
+ 
+Depending on which options you select the script also outputs an HTML file.  The file name will be given in the PowerShell window.
+
 
 **Perform a test run on application discovery on the SQL Server and VDP appliance:**
 ```
