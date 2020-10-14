@@ -29,14 +29,14 @@ To run VDP Appliance connection tests and onboarding, you need to also use these
 * _-vdppassword_  The password to login to the appliance.  You can also use a passwordfile.  If you don't enter a password or file name, you will be securely prompted for a password
 * _-passwordfile_  The password file, rather than typing a plain text password.
 
-## Sample output:
-The following are sample of the different operations supported:
-If no options are entered then a menu will be displayed.
 
 ## HTML output
  
 Depending on which options you select the script also outputs an HTML file.  The file name will be given in the PowerShell window.
 
+## Sample output:
+The following are sample of the different operations supported:
+If no options are entered then a menu will be displayed.
 
 **Perform a test run on application discovery on the SQL Server and VDP appliance:**
 ```
