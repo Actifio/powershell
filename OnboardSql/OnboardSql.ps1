@@ -11,6 +11,7 @@
 # Version 1.6 improve VSS reporting
 # Version 1.7 improve visual alerts
 # Version 1.8 added HTML output
+# Version 1.9 Improved HTML output
 #
 <#   
 .SYNOPSIS   
@@ -51,7 +52,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 12-Oct-2020
+    LastUpdated: 14-Oct-2020
 .LINK
     https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
@@ -69,7 +70,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.8"
+$ScriptVersion = "1.9"
 
 function Get-SrcWin-Info ()
 {
@@ -107,7 +108,7 @@ function Get-SrcWin-Info ()
     } else {
     $ConnectorVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
     }
-    $thisObject | Add-Member -MemberType NoteProperty -Name ConnectorVersion -Value $ConnectorVersion  
+    $thisObject | Add-Member -MemberType NoteProperty -Name ActifioConnectorVersion -Value $ConnectorVersion  
 }
 
 function Get-WinObject-DiskInfo ()
@@ -335,7 +336,8 @@ function Get-TgtVDP-Info (
     {
         write-host "`n* TEST:  Performing an iSCSI test on $(($thisObject).ComputerName) from VDP appliance $vdpip : `n"
         $cmd = "udstask iscsitest -host " + $HostId 
-        Invoke-Expression $cmd | Format-Table *
+        $iscsitestout = Invoke-Expression $cmd 
+        $iscsitestout | Format-Table *
     } 
 
     if ($true -eq $WillExec) {   
@@ -343,19 +345,20 @@ function Get-TgtVDP-Info (
         $cmd = "udstask appdiscovery -host " + $hostid
         # write-host "> $cmd"
         if ($true -eq $WillExec) {
-            Invoke-Expression $cmd | Format-Table *
+            $appdiscovery = Invoke-Expression $cmd 
+            $appdiscovery | format-table *
         } 
     }
 
 
     write-host "`n* TEST:  Listing all applications discovered on $(($thisObject).ComputerName) stored in VDP appliance $vdpip : `n"
-    $cmd = "udsinfo lsapplication | where { `$`_.HostId -eq $HostId } | Select-Object AppName, AppType "
-    #write-host "> $cmd"
-    #if ($true -eq $WillExec) {
-        Invoke-Expression $cmd | Sort-Object apptype,appname | Format-Table * 
-    #} 
+    $cmd = "udsinfo lsapplication | where { `$`_.HostId -eq $HostId } | Select-Object ID, AppName, AppType "
 
-    if (($thisObject).'ConnectorVersion') 
+    $applist = Invoke-Expression $cmd | Sort-Object id, apptype,appname 
+    $applist| Format-Table * 
+    
+
+    if (($thisObject).'ActifioConnectorVersion') 
     {
         write-host "`n* TEST:  Checking Connector version of $(($thisObject).ComputerName) compared to latest available on VDP appliance $vdpip"
         $connectorgrab = reportconnectors -a $hostid
@@ -365,7 +368,7 @@ function Get-TgtVDP-Info (
         }   
         elseif ($connectorgrab.VersionCheck -eq "Newer Version")
         {
-            write-host "Partial:  Installed Connector ($thisObject).'ConnectorVersion' is on a higher release than the VDP Applianceversion" $connectorgrab.AvailableVersion
+            write-host "Partial:  Installed Connector ($thisObject).'ActifioConnectorVersion' is on a higher release than the VDP Applianceversion" $connectorgrab.AvailableVersion
         }
         elseif ( $connectorgrab.VersionCheck -eq "Upgrade Needed")
         {
@@ -389,6 +392,7 @@ function Get-TgtVDP-Info (
     write-Host "`n---------------------------------------------------------------------------`n"
 
     # Disconnect-Act -quiet
+    New-SQLHTMLReport
 }      
 
 ##################################
@@ -412,7 +416,7 @@ function Show-WinObject-Info ()
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
   write-Host "                       OS: $(($thisObject).'WindowsVersion')"
   write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
-  write-Host "        Actifio Connector: $(($thisObject).'ConnectorVersion')`n"
+  write-Host "        Actifio Connector: $(($thisObject).'ActifioConnectorVersion')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
   
 }
@@ -470,7 +474,7 @@ function Show-SqlObject-Info (
   else 
   {
 	# if we cannot find SqlServerWriter then we need to highlight this
-    $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | select Writer).writer
+    $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | Select-Object Writer).writer
     if ($sqlvsscheck -eq $null)
     {
         write-Host "              VSS Writers: SqlServerWriter not found!" -ForegroundColor red -BackgroundColor white
@@ -498,22 +502,84 @@ function Show-SqlObject-Info (
 # Function: New-HTMLReport 
 #
 ##################################
-function New-HTMLReport 
+function New-SQLHTMLReport
 {
-    $OSinfo = $thisobject | ConvertTo-Html -As List -Property ComputerName,IPAddress,FQDN,WindowsVersion,PowerShellVersion,ConnectorVersion -Fragment -PreContent "<h2>Operating System Information</h2>"
+    $ComputerName = "<h1>Computer name: $env:computername</h1>"
+
+    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActifioConnectorVersion -Fragment -PreContent "<h2>Operating System Information</h2>"
     if ($vssobject)
     {
         $driveinfo = $vssobject | ConvertTo-Html -Fragment -PreContent "<h2>Drive Information</h2>"
     }
-    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"
+    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"  -PostContent "<p>Result from:  Get-NetFirewallRule<p>"
 
-    $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>"
+    $sqlobject = New-Object -TypeName psobject 
 
-    #The command below will combine all the information gathered into a single HTML report
-    $Report = ConvertTo-HTML -Body "$OSinfo $driveinfo $firewallinfo $vssinfo" -Title "SQL Health Check Report" 
+    if ($False -eq $(($thisObject).SqlInstalled)) {
+        $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlInstalled' -Value "No"
+      } else {
+        $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlInstalled' -Value "Yes"
+      }
+      if ($null -eq  $(($thisObject).SqlInstances)) {
+        $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlInstances' -Value "No Instances Created"
+      } else {
+        $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlInstances' -Value ""
+            $(($thisObject).SqlInstances) | ForEach-Object { 
+                $sqlobject.SqlInstances = $sqlobject.SqlInstances + "  " + $_
+                $i++
+            }
+      }
+      if  ($(($thisObject).VssWriters)) {
+        # if we cannot find SqlServerWriter then we need to highlight this
+        $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | Select-Object Writer).writer
+        if ($sqlvsscheck -eq $null)
+        {
+            $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Not found!" 
+        }
+        else {
+            $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Found"
+        }
+      }
+    $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p> If the  SqlServerWriter is Not Found, then the SQL Server VSS Writer may be in a stopped state<p>"
 
-    #The command below will generate the report to an HTML file
-    $Report | Out-File .\SQL-Health-Check-Report.html
+    $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>" -PostContent  "<p>Result from: vssadmin list writers<p>"
+
+    if ($tgtvdp -eq $FALSE)
+    {
+        #The command below will combine all the information gathered into a single HTML report
+        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+
+        #The command below will generate the report to an HTML file
+        $Report | Out-File .\SQL-Health-Check-Report.html
+        write-host "Results output to: SQL-Health-Check-Report.html "
+    }
+    else 
+    {
+        if ($iscsitestout)
+        {
+            $iscsitestouthtml = $iscsitestout | ConvertTo-Html -Property iSCSIPort,Test,Status,Hint -Fragment -PreContent "<h2>iSCSI Test Result</h2>"  -PostContent "<p> Result from:  udstask iscsitest <p>"
+        }
+        if ($appdiscovery)
+        {
+            $appdiscoveryhtml = $appdiscovery | ConvertTo-Html -Property id,appname,exists,new,missing,saved -Fragment -PreContent "<h2>Application Discovery Result</h2>" -PostContent "<p> Result from:  udstask appdiscovery <p>"
+        }
+        if ($applist)
+        {
+            $applisthtml = $applist | ConvertTo-Html -Property id, AppName,AppType -Fragment -PreContent "<h2>Discovered Applications</h2>" -PostContent "<p> Result from: udsinfo lsapplication <p>"
+        }
+        if ($srcsql -eq $TRUE)
+        {
+            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+        }
+        else
+        {
+            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+        }
+
+        #The command below will generate the report to an HTML file
+        $Report | Out-File .\SQL-Onboarding-Report.html    
+        write-host "Results output to: SQL-Onboarding-Report.html "
+    }
 }
 
 
@@ -552,6 +618,7 @@ if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
         $iscsitest = $TRUE
         $srcsql = $TRUE}
     if ($userselection -eq 6) {  $tgtvdp = $TRUE  
+        $srcsql = $TRUE 
         $ToExec = $TRUE 
         $iscsitest = $FALSE}
     if ($userselection -eq 7) 
@@ -567,25 +634,32 @@ $hostVersionInfo = (get-host).Version.Major
 ## Create an object based on the PSObject class
 $thisObject = New-Object -TypeName psobject 
 
-
+# first we get information
 Get-SrcWin-Info
 if ($true -eq $srcsql.IsPresent) {
   Get-WinObject-DiskInfo
   Get-SrcSql-Info $vdpip
 }
 
+# then we show information
 Show-WinObject-Info
-
 if ($true -eq $srcsql.IsPresent) 
 {
     Show-WinObject-DiskInfo
     Show-SqlObject-Info $vdpip
-    New-HTMLReport
 }
+
+# finally if the call to action is made, we make it
 if ($true -eq $tgtvdp.IsPresent) 
 {
     Get-TgtVDP-Info $ToExec.IsPresent
 }
+else 
+{
+    New-SQLHTMLReport    
+}
+
+
 
 
 
