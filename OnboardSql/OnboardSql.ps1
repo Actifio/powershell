@@ -509,9 +509,9 @@ function New-SQLHTMLReport
     $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActifioConnectorVersion -Fragment -PreContent "<h2>Operating System Information</h2>"
     if ($vssobject)
     {
-        $driveinfo = $vssobject | ConvertTo-Html -Fragment -PreContent "<h2>Drive Information</h2>"
+        $driveinfo = $vssobject | ConvertTo-Html -Fragment -PreContent "<h2>Drive Information</h2>" -PostContent "<p>Reference KB: 000010287 and 000045141. If FreeSpacePerc is less than 10% then consider using a vssdiff drive. <p>"
     }
-    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"  -PostContent "<p>Result from:  Get-NetFirewallRule<p>"
+    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"  -PostContent "<p>Reference KB:  000039102.  Result from:  Get-NetFirewallRule<p>"
 
     $sqlobject = New-Object -TypeName psobject 
 
@@ -540,9 +540,9 @@ function New-SQLHTMLReport
             $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Found"
         }
       }
-    $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p> If the  SqlServerWriter is Not Found, then the SQL Server VSS Writer may be in a stopped state<p>"
+    $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p>Reference KB: 000010284. If the  SqlServerWriter is Not Found, then the SQL Server VSS Writer may be in a stopped state<p>"
 
-    $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>" -PostContent  "<p>Result from: vssadmin list writers<p>"
+    $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>" -PostContent  "<p>Reference KB: 000010284. Result from: vssadmin list writers<p>"
 
     if ($tgtvdp -eq $FALSE)
     {
