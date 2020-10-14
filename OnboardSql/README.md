@@ -5,6 +5,7 @@ This is a powershell script that helps on-board a SQL Server to the VDP applianc
 ## How does this work?
 
 It relies on two switches i.e. -srcsql or -tgtvdp . Either switch or both switches need to be specified when using the script.
+If you don't specify either switch you will get a selection menu.
 
 ## Supported PowerShell versions
 
@@ -27,6 +28,11 @@ To run VDP Appliance connection tests and onboarding, you need to also use these
 * _-vdpuser_  The user name to login to the appliance
 * _-vdppassword_  The password to login to the appliance.  You can also use a passwordfile.  If you don't enter a password or file name, you will be securely prompted for a password
 * _-passwordfile_  The password file, rather than typing a plain text password.
+
+
+## HTML output
+ 
+Depending on which options you select the script also outputs an HTML file.  The file name will be given in the PowerShell window.
 
 ## Sample output:
 The following are sample of the different operations supported:
