@@ -12,6 +12,7 @@
 # Version 1.7 improve visual alerts
 # Version 1.8 added HTML output
 # Version 1.9 Improved HTML output
+# Version 1.10 handle PowerShell 3.0.  addded automount and trim/unmap tests
 #
 <#   
 .SYNOPSIS   
@@ -52,7 +53,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 14-Oct-2020
+    LastUpdated: 15-Oct-2020
 .LINK
     https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
@@ -70,7 +71,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.9"
+$ScriptVersion = "1.10"
 
 function Get-SrcWin-Info ()
 {
@@ -86,14 +87,16 @@ function Get-SrcWin-Info ()
     ## Find the source Windows Server FQDN
     $CurrentFQDN = [System.Net.DNS]::GetHostByName($Null).HostName
     $thisObject | Add-Member -MemberType NoteProperty -Name FQDN -Value $("$CurrentFQDN")
-
-    ## Find the source Windows Server IP address
-    $CurrentIP = ( Get-NetIPConfiguration |
-    Where-Object {
-        $null -ne $_.IPv4DefaultGateway -And
-        $_.NetAdapter.Status -ne "Disconnected"
-    } ).IPv4Address.IPAddress
-    $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
+    if ($hostVersionInfo -gt 3)
+    {
+        ## Find the source Windows Server IP address
+        $CurrentIP = ( Get-NetIPConfiguration |
+        Where-Object {
+            $null -ne $_.IPv4DefaultGateway -And
+            $_.NetAdapter.Status -ne "Disconnected"
+        } ).IPv4Address.IPAddress
+        $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
+    }
 
     # check powershell version
     [string]$psversionmajor = (Get-host).version.major 
@@ -109,6 +112,35 @@ function Get-SrcWin-Info ()
     $ConnectorVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
     }
     $thisObject | Add-Member -MemberType NoteProperty -Name ActifioConnectorVersion -Value $ConnectorVersion  
+
+    # look for automount 
+    $automountgrab = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\MountMgr'
+    if ($automountgrab.NoAutoMount)
+    {
+        if ($automountgrab.NoAutoMount -eq 1)
+        {
+            $thisObject | Add-Member -MemberType NoteProperty -Name AutoMount -Value "Disabled"
+        }
+        else {
+            $thisObject | Add-Member -MemberType NoteProperty -Name AutoMount -Value "Enabled"
+        }
+    }
+    else
+    {
+        $thisObject | Add-Member -MemberType NoteProperty -Name AutoMount -Value "Enabled"
+    }
+
+    # look for DisableDeleteNotify
+    $disabledelete = fsutil behavior query DisableDeleteNotify
+    if ($disabledelete  -eq "DisableDeleteNotify = 0")
+    {
+        $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Enabled"
+    }
+    else 
+    {
+        $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Disabled"
+    }
+
 }
 
 function Get-WinObject-DiskInfo ()
@@ -151,36 +183,37 @@ function Get-WinObject-DiskInfo ()
 function Get-SrcSql-Info ([string]$vdpip)
 {
  
-
-    if (($iscsitest.IsPresent) -and ($ToExec.IsPresent))
-    {
-        Write-Host "Ensuring all iSCSI related services are setup correctly."
-        Start-Service msiscsi
-        Set-Service msiscsi -startuptype "automatic"
-        Set-NetFirewallRule -Name MsiScsi-In-TCP -Enabled True
-        Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
-    }
-
     Write-Host "Gathering information on Sql Server Host. "
     ## Get the status of iSCSI service : Running, Stopped
     $iSCSIStatus = $(get-service msiscsi).status
     $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIStatus -Value $("$iSCSIStatus")
 
-    ## Get the status of firewall for iSCSI service : "Running", "Stopped"
-    $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
 
-    Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
-    $Label = $_.Name + "Firewall"
-    $thisObject | Add-Member -MemberType NoteProperty -Name $Label  -Value ($_.Enabled).ToString()
+    if ($hostVersionInfo -gt 3)
+    {   
+        if (($iscsitest.IsPresent) -and ($ToExec.IsPresent))
+        {
+            Write-Host "Ensuring all iSCSI related services are setup correctly."
+            Start-Service msiscsi
+            Set-Service msiscsi -startuptype "automatic"
+            Set-NetFirewallRule -Name MsiScsi-In-TCP -Enabled True
+            Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
+        }
+        ## Get the status of firewall for iSCSI service : "Running", "Stopped"
+        $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
+
+        Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
+        $Label = $_.Name + "Firewall"
+        $thisObject | Add-Member -MemberType NoteProperty -Name $Label  -Value ($_.Enabled).ToString()
+        }
+
+        ## $iSCSIfwIn.Enabled , $iscsifwOut.Enabled : "True"
+        $iSCSIfwIn = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-In-TCP"}
+        $iscsifwOut = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-Out-TCP"}
+
+        $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwInStatus -Value ($($iSCSIfwIn.Enabled)).ToString()
+        $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwOutStatus -Value ($($iSCSIfwOut.Enabled)).ToString()
     }
-
-    ## $iSCSIfwIn.Enabled , $iscsifwOut.Enabled : "True"
-    $iSCSIfwIn = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-In-TCP"}
-    $iscsifwOut = $iSCSIfirewall | Where-Object {$_.Name -eq "MsiScsi-Out-TCP"}
-
-    $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwInStatus -Value ($($iSCSIfwIn.Enabled)).ToString()
-    $thisObject | Add-Member -MemberType NoteProperty -Name iSCSIfwOutStatus -Value ($($iSCSIfwOut.Enabled)).ToString()
-
     if (! (Test-Path 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server')) {
     $SQLInstalled = $False
     $SQLInstances = $Null
@@ -204,8 +237,8 @@ function Get-SrcSql-Info ([string]$vdpip)
         @{Label="State"; Expression={$_.Context.PostContext[2].Trim().SubString(11)}},
         @{Label="LastError"; Expression={$_.Context.PostContext[3].Trim().SubString(12)}})
 
-    $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters     
-
+    $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters 
+    
 }      
 
 ##################################
@@ -416,7 +449,9 @@ function Show-WinObject-Info ()
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
   write-Host "                       OS: $(($thisObject).'WindowsVersion')"
   write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
-  write-Host "        Actifio Connector: $(($thisObject).'ActifioConnectorVersion')`n"
+  write-Host "        Actifio Connector: $(($thisObject).'ActifioConnectorVersion')"
+  write-Host "               Auto Mount: $(($thisObject).'AutoMount')"
+  write-Host "   Trim and unmap feature: $(($thisObject).'TrimUnmapFeature')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
   
 }
@@ -442,11 +477,14 @@ function Show-SqlObject-Info (
   [string]$vdpip
 )
 {
-  write-Host "          Domain Firewall: $(($thisObject).DomainFirewall) "
-  write-Host "         Private Firewall: $(($thisObject).PrivateFirewall) "
-  write-Host "          Public Firewall: $(($thisObject).PublicFirewall) "  
-  write-Host "   iSCSI FireWall Inbound: $(($thisObject).iSCSIfwInStatus) "
-  write-Host "  iSCSI FireWall Outbound: $(($thisObject).iSCSIfwOutStatus)`n"  
+    if ($hostVersionInfo -gt 3)  
+    {
+        write-Host "          Domain Firewall: $(($thisObject).DomainFirewall) "
+        write-Host "         Private Firewall: $(($thisObject).PrivateFirewall) "
+        write-Host "          Public Firewall: $(($thisObject).PublicFirewall) "  
+        write-Host "   iSCSI FireWall Inbound: $(($thisObject).iSCSIfwInStatus) "
+        write-Host "  iSCSI FireWall Outbound: $(($thisObject).iSCSIfwOutStatus)`n"
+    }  
 
   if ($vdpip -ne $null -And $vdpip -ne "") {
     if ( Test-Connection $vdpip -Count 2 -Quiet ) {
@@ -506,13 +544,29 @@ function New-SQLHTMLReport
 {
     $ComputerName = "<h1>Computer name: $env:computername</h1>"
 
-    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActifioConnectorVersion -Fragment -PreContent "<h2>Operating System Information</h2>"
+    
+    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActifioConnectorVersion,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
+
+    if ($thisobject.AutoMount -eq "Enabled")
+    {
+        $automountinfo = $thisobject | ConvertTo-Html -As List -Property AutoMount -Fragment -PreContent "<h2>AutoMount Setting</h2>" -PostContent "<p> Actifio recommend AutoMount be disabled.<br>Start 'diskpart', then issue 'automount disable'<br> Reference KB: 000044847 and 000025867.<p>"
+    }
+
+
+    if ($thisobject.TrimUnmapFeature -eq "Enabled")
+    {
+        $TrimUnmapFeatureInfo = $thisobject | ConvertTo-Html -As List -Property TrimUnmapFeature -Fragment -PreContent "<h2>Trim and UnMap Feature Setting</h2>" -PostContent "<p>For very large disks, this setting may need to be disabled for the first snapshot<br> Reference KB: 000045385<p>"
+    }
+    
+
     if ($vssobject)
     {
         $driveinfo = $vssobject | ConvertTo-Html -Fragment -PreContent "<h2>Drive Information</h2>" -PostContent "<p> If FreeSpacePerc is less than 10% then consider using a vssdiff drive.<br> Reference KB: 000010287 and 000045141.<p>"
     }
-    $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"  -PostContent "<p>Result from:  Get-NetFirewallRule <br>Reference KB:  000039102<p>"
-
+    if ($hostVersionInfo -gt 3)
+    {
+        $firewallinfo = $thisobject | ConvertTo-Html -As List -Property DomainFirewall,PrivateFirewall,PublicFirewall,iSCSIfwInStatus,iSCSIfwOutStatus -Fragment -PreContent "<h2>Firewall Information</h2>"  -PostContent "<p>Result from:  Get-NetFirewallRule <br>Reference KB:  000039102<p>"
+    }
     $sqlobject = New-Object -TypeName psobject 
 
     if ($False -eq $(($thisObject).SqlInstalled)) {
@@ -529,17 +583,24 @@ function New-SQLHTMLReport
                 $i++
             }
       }
-      if  ($(($thisObject).VssWriters)) {
+      if  ($(($thisObject).VssWriters)) 
+      {
         # if we cannot find SqlServerWriter then we need to highlight this
         $sqlvsscheck = $($(($thisObject).VssWriters) | where-object { $_.Writer -eq "SqlServerWriter" } | Select-Object Writer).writer
         if ($sqlvsscheck -eq $null)
         {
             $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Not found!" 
         }
-        else {
+        else 
+        {
             $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Found"
         }
       }
+      else 
+      {
+        $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Not found!" 
+      }
+
     $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p>If the  SqlServerWriter is Not Found, then the SQL Server VSS Writer may be in a stopped state<br>Reference KB: 000010284.<p>"
 
     $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>" -PostContent  "<p>Result from: vssadmin list writers <br>Reference KB: 000010284 <p>"
@@ -547,7 +608,7 @@ function New-SQLHTMLReport
     if ($tgtvdp -eq $FALSE)
     {
         #The command below will combine all the information gathered into a single HTML report
-        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $automountinfo $TrimUnmapFeatureInfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
 
         #The command below will generate the report to an HTML file
         $Report | Out-File .\SQL-Health-Check-Report.html
@@ -569,7 +630,7 @@ function New-SQLHTMLReport
         }
         if ($srcsql -eq $TRUE)
         {
-            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $automountinfo $TrimUnmapFeatureInfo $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
         }
         else
         {
@@ -590,6 +651,15 @@ function New-SQLHTMLReport
 #  M A I N    B O D Y
 #
 ##############################
+
+
+$hostVersionInfo = (get-host).Version.Major
+if ($hostVersionInfo -lt 3)
+{
+    write-host "PowerShell version $hostVersionInfo is too downlevel.   Please upgrade to at least version 3.0"
+    return
+}
+
 
 if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
     Clear-Host
@@ -629,7 +699,7 @@ if (($false -eq $srcsql.IsPresent) -And ($false -eq $tgtvdp.IsPresent)) {
         $iscsitest = $TRUE}
     if ($userselection -eq 8) {  Show-Usage  }
 
-$hostVersionInfo = (get-host).Version.Major
+
     
 ## Create an object based on the PSObject class
 $thisObject = New-Object -TypeName psobject 
