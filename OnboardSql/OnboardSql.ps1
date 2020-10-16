@@ -13,6 +13,7 @@
 # Version 1.8 added HTML output
 # Version 1.9 Improved HTML output
 # Version 1.10 handle PowerShell 3.0.  addded automount and trim/unmap tests
+# Version 1.11 better agent health checks
 #
 <#   
 .SYNOPSIS   
@@ -53,7 +54,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 15-Oct-2020
+    LastUpdated: 16-Oct-2020
 .LINK
     https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
@@ -71,7 +72,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.10"
+$ScriptVersion = "1.11"
 
 function Get-SrcWin-Info ()
 {
@@ -94,7 +95,7 @@ function Get-SrcWin-Info ()
         Where-Object {
             $null -ne $_.IPv4DefaultGateway -And
             $_.NetAdapter.Status -ne "Disconnected"
-        } ).IPv4Address.IPAddress
+        } ).IPv4Address.IPAddress | select-object -first 1
         $thisObject | Add-Member -MemberType NoteProperty -Name IPAddress -Value $("$CurrentIP")
     }
 
@@ -104,14 +105,44 @@ function Get-SrcWin-Info ()
     [string]$psversiongrab = $psversionmajor + "." + $psversionminor
     $thisObject | Add-Member -MemberType NoteProperty -Name PowerShellVersion -Value $psversiongrab
 
-    # look for connector 
-    if (! (Test-Path 'HKLM:\SOFTWARE\Actifio Inc')) {
-    # Write-Host "Actifio Software is not installed on this host !!"
-    $ConnectorVersion = $Null
-    } else {
-    $ConnectorVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
+    # look for actpowercli
+    $actpowercligrab = Get-Module -ListAvailable -Name ActPowerCLI -ErrorAction SilentlyContinue | Select-Object -Property Version
+    if ($actpowercligrab.version)
+    {
+        $thisObject | Add-Member -MemberType NoteProperty -Name ActPowerCLIVersion -Value $actpowercligrab.version
     }
-    $thisObject | Add-Member -MemberType NoteProperty -Name ActifioConnectorVersion -Value $ConnectorVersion  
+    else 
+    {
+        $thisObject | Add-Member -MemberType NoteProperty -Name ActPowerCLIVersion -Value "NotInstalled"
+    }
+
+
+    # look for connector 
+   # look for connector 
+   if (! (Test-Path 'HKLM:\SOFTWARE\Actifio Inc')) 
+   {
+       # Write-Host "Actifio Software is not installed on this host !!"
+       $ConnectorVersion = "NotInstalled"
+       $AAMServiceInstanced = "NotInstalled"
+   } 
+   else 
+   {
+       $ConnectorVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Actifio Inc\UDSAgent').Version
+       $ConnectorStatus = (Get-Service -name UDSAgent).Status
+       $thisObject | Add-Member -MemberType NoteProperty -Name ActifioConnectorStatus -Value $ConnectorStatus
+       if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\AAMService') 
+       {
+           $AAMServiceInstanced = "Installed"
+           $aamstatus = (Get-Service -name AAMService).Status
+           $thisObject | Add-Member -MemberType NoteProperty -Name ActifioActivityMonitorStatus -Value $aamstatus
+       }
+       else 
+       {
+           $AAMServiceInstanced = "NotInstalled"
+       }
+   }
+   $thisObject | Add-Member -MemberType NoteProperty -Name ActifioConnectorVersion -Value $ConnectorVersion
+   $thisObject | Add-Member -MemberType NoteProperty -Name ActifioActivityMonitor -Value $AAMServiceInstanced   
 
     # look for automount 
     $automountgrab = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\MountMgr'
@@ -406,15 +437,8 @@ function Get-TgtVDP-Info (
         elseif ( $connectorgrab.VersionCheck -eq "Upgrade Needed")
         {
             write-host "---> Failed: Connector is downlevel, version" $connectorgrab.AvailableVersion "is available"
-            if  ($false -eq $WillExec)
-            {
-                write-host "             Upgrade by running:    udstask upgradehostconnector -hosts $hostid"
-                write-host "             Wait a few minutes for the upgrade to complete before testing again"
-            }
-            else {
-                write-host "Upgrading Connector to $connectorgrab.AvailableVersion. Wait a few minutes for the upgrade to complete before testing again"
-                udstask upgradehostconnector -hosts $hostid
-            }
+            write-host "             Upgrade by running:    udstask upgradehostconnector -hosts $hostid"
+            write-host "             Wait a few minutes for the upgrade to complete before testing again"
         }
         else 
         {
@@ -449,7 +473,9 @@ function Show-WinObject-Info ()
   write-Host "                     FQDN: $(($thisObject).FQDN) "  
   write-Host "                       OS: $(($thisObject).'WindowsVersion')"
   write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
+  write-Host "      ActPowerCLI Version: $(($thisObject).'ActPowerCLIVersion')"
   write-Host "        Actifio Connector: $(($thisObject).'ActifioConnectorVersion')"
+  write-Host " Actifio Activity Monitor: $(($thisObject).'ActifioActivityMonitor')"
   write-Host "               Auto Mount: $(($thisObject).'AutoMount')"
   write-Host "   Trim and unmap feature: $(($thisObject).'TrimUnmapFeature')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
@@ -545,7 +571,31 @@ function New-SQLHTMLReport
     $ComputerName = "<h1>Computer name: $env:computername</h1>"
 
     
-    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActifioConnectorVersion,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
+    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActPowerCLIVersion,ActifioConnectorVersion,ActifioActivityMonitor,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
+
+    # if AAM is not installed, we complain.  Note we complainevn if Connector is NOT installed, bit this reminds user to enable it!
+    if ($thisobject.ActifioActivityMonitor -eq "NotInstalled")
+    {
+        $aaminfo = $thisobject | ConvertTo-Html -As List -Property ActifioActivityMonitor -Fragment -PreContent "<h2>Actifio Activity Monitor</h2>" -PostContent "<p> The Actifio Activity Monitor needs to be installed.<br>Install/Reinstall the Actifio Connector and use the dropdown to enable the Change Tracking Driver<p>"
+    }
+    if ($thisobject.ActifioConnectorStatus) 
+    {
+        if ($thisobject.ActifioActivityMonitorStatus) 
+        {
+            if (($thisobject.ActifioActivityMonitorStatus -ne 'Running') -or ($thisobject.ActifioConnectorStatus -ne 'Running'))
+            {
+                $udsagentstatusinfo = $thisobject | ConvertTo-Html -As List -Property ActifioConnectorStatus,ActifioActivityMonitorStatus -Fragment -PreContent "<h2>Actifio Connector Status</h2>" -PostContent "<p> The Actifio Connector software AAMService or UDSAgent is not running..<br>Start services.msc and make sure both services are running<p>"
+            }
+        }
+        else
+        {
+            if ($thisobject.ActifioConnectorStatus -ne 'Running')
+            {
+                $udsagentstatusinfo = $thisobject | ConvertTo-Html -As List -Property ActifioConnectorStatus -Fragment -PreContent "<h2>Actifio Connector Status</h2>" -PostContent "<p>The Actifio Connector software UDSAgent is not running..<br>Start services.msc and start it<p>"
+            }
+        }
+    }
+
 
     if ($thisobject.AutoMount -eq "Enabled")
     {
@@ -601,14 +651,22 @@ function New-SQLHTMLReport
         $sqlobject | Add-Member -MemberType NoteProperty -Name 'SqlServerWriter' -Value "Not found!" 
       }
 
-    $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p>If the  SqlServerWriter is Not Found, then the SQL Server VSS Writer may be in a stopped state<br>Reference KB: 000010284.<p>"
+    if ($sqlobject.SqlServerWriter -eq "Found")
+    {
+        $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" 
+    }  
+    else 
+    {
+        $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p>If the  SqlServerWriter is Not Found, then SQL Server is not installed or the SQL Server VSS Writer may be in a stopped state<br>Reference KB: 000010284.<p>"
+    }
+    
 
     $vssinfo = ($thisObject).VssWriters | ConvertTo-Html -Fragment -PreContent "<h2>VSSWriter Information</h2>" -PostContent  "<p>Result from: vssadmin list writers <br>Reference KB: 000010284 <p>"
 
     if ($tgtvdp -eq $FALSE)
     {
         #The command below will combine all the information gathered into a single HTML report
-        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $automountinfo $TrimUnmapFeatureInfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $udsagentstatusinfo $aaminfo $automountinfo $TrimUnmapFeatureInfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
 
         #The command below will generate the report to an HTML file
         $Report | Out-File .\SQL-Health-Check-Report.html
@@ -628,9 +686,26 @@ function New-SQLHTMLReport
         {
             $applisthtml = $applist | ConvertTo-Html -Property id, AppName,AppType -Fragment -PreContent "<h2>Discovered Applications</h2>" -PostContent "<p> Result from: udsinfo lsapplication <p>"
         }
+
+        if ($connectorgrab.VersionCheck)
+        {
+            if ($connectorgrab.VersionCheck -eq "Current Release")
+            {
+                $connectortest = $connectorgrab | ConvertTo-Html -Property InstalledVersion,AvailableVersion,VersionCheck -PreContent "<h2>Actifio Connector Version Check</h2>" -PostContent "<p> Result from: reportconnectors <p>"
+            }
+            if ($connectorgrab.VersionCheck -eq "Upgrade Needed")
+            {
+                $connectortest = $connectorgrab | ConvertTo-Html -Property InstalledVersion,AvailableVersion,VersionCheck -PreContent "<h2>Actifio Connector Version Check</h2>" -PostContent "<p> Result from: reportconnectors<br>  Connector is downlevel, please upgrade <p>"
+            }
+            if ($connectorgrab.VersionCheck -eq "Newer Version")
+            {
+                $connectortest = $connectorgrab | ConvertTo-Html -Property InstalledVersion,AvailableVersion,VersionCheck -PreContent "<h2>Actifio Connector Version Check</h2>" -PostContent "<p> Result from: reportconnectors br>  Connector is uplevel to the Appliance, this may cause unexpected issues <p>"
+            }
+        }
+
         if ($srcsql -eq $TRUE)
         {
-            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $automountinfo $TrimUnmapFeatureInfo $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+            $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $udsagentstatusinfo $aaminfo $TrimUnmapFeatureInfo $connectortest $iscsitestouthtml $appdiscoveryhtml $applisthtml" -Title "SQL Onboarding Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
         }
         else
         {
