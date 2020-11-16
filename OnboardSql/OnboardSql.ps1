@@ -681,7 +681,7 @@ function New-SQLHTMLReport
     if ($tgtvdp -eq $FALSE)
     {
         #The command below will combine all the information gathered into a single HTML report
-        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $udsagentstatusinfo $aaminfo $automountinfo $TrimUnmapFeatureInfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $(Get-Date)<p>"
+        $Report = ConvertTo-HTML -Body "$ComputerName $OSinfo $driveinfo $firewallinfo $sqlinfo $vssinfo $udsagentstatusinfo $aaminfo $automountinfo $TrimUnmapFeatureInfo" -Title "SQL Health Check Report"  -PostContent "<p>Report created: $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))<p>"
 
         #The command below will generate the report to an HTML file
         $Report | Out-File .\SQL-Health-Check-Report.html
