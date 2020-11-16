@@ -14,6 +14,7 @@
 # Version 1.9 Improved HTML output
 # Version 1.10 handle PowerShell 3.0.  addded automount and trim/unmap tests
 # Version 1.11 better agent health checks
+# Version 1.12 Ignore ReFS Disable Delete, handle iSCSI service using non-English name
 #
 <#   
 .SYNOPSIS   
@@ -54,7 +55,7 @@
     Name: OnboardSql.ps1
     Author: Michael Chew and Anthony Vandewerdt
     DateCreated: 3-April-2020
-    LastUpdated: 16-Oct-2020
+    LastUpdated: 16-Nov-2020
 .LINK
     https://github.com/Actifio/powershell/blob/main/OnboardSql   
 #>
@@ -72,7 +73,7 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.11"
+$ScriptVersion = "1.12"
 
 function Get-SrcWin-Info ()
 {
@@ -163,15 +164,29 @@ function Get-SrcWin-Info ()
 
     # look for DisableDeleteNotify
     $disabledelete = fsutil behavior query DisableDeleteNotify
-    if ($disabledelete  -eq "DisableDeleteNotify = 0")
+    if ($($disabledelete | measure-object -line).lines -gt 1)
     {
-        $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Enabled"
-    }
+        $disabledelete = fsutil behavior query DisableDeleteNotify NTFS
+        if ($disabledelete  -eq "NTFS DisableDeleteNotify = 0")
+        {
+            $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Enabled"
+        }
+        else 
+        {
+            $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Disabled"
+        }
+    } 
     else 
     {
-        $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Disabled"
+        if ($disabledelete  -eq "DisableDeleteNotify = 0")
+        {
+            $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Enabled"
+        }
+        else 
+        {
+            $thisObject | Add-Member -MemberType NoteProperty -Name TrimUnmapFeature -Value "Disabled"
+        }
     }
-
 }
 
 function Get-WinObject-DiskInfo ()
@@ -231,7 +246,7 @@ function Get-SrcSql-Info ([string]$vdpip)
             Set-NetFirewallRule -Name MsiScsi-Out-TCP -Enabled True
         }
         ## Get the status of firewall for iSCSI service : "Running", "Stopped"
-        $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi Service"
+        $iSCSIfirewall = Get-NetFirewallRule -DisplayGroup "iscsi *"
 
         Get-NetFirewallProfile | Select-Object Name, Enabled | ForEach-Object { 
         $Label = $_.Name + "Firewall"
@@ -573,7 +588,7 @@ function New-SQLHTMLReport
     
     $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActPowerCLIVersion,ActifioConnectorVersion,ActifioActivityMonitor,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
 
-    # if AAM is not installed, we complain.  Note we complainevn if Connector is NOT installed, bit this reminds user to enable it!
+    # if AAM is not installed, we complain.  Note we complain even if Connector is NOT installed, bit this reminds user to enable it!
     if ($thisobject.ActifioActivityMonitor -eq "NotInstalled")
     {
         $aaminfo = $thisobject | ConvertTo-Html -As List -Property ActifioActivityMonitor -Fragment -PreContent "<h2>Actifio Activity Monitor</h2>" -PostContent "<p> The Actifio Activity Monitor needs to be installed.<br>Install/Reinstall the Actifio Connector and use the dropdown to enable the Change Tracking Driver<p>"
