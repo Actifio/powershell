@@ -270,7 +270,11 @@ function Get-SrcSql-Info ([string]$vdpip)
     } else {
     $SQLInstalled = $True
     Import-ActSqlModule
-    $SQLInstances = $env:COMPUTERNAME | Foreach-Object {Get-ChildItem -Path "SQLSERVER:\SQL\$_"}
+    if (Test-Path -Path SQLSERVER:\SQL) {
+        $SQLInstances = $env:COMPUTERNAME | Foreach-Object {Get-ChildItem -Path "SQLSERVER:\SQL\$_"}
+    } else {
+        $SQLInstances = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server').InstalledInstances
+    }
     }
     $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
     $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
@@ -331,7 +335,7 @@ function Import-ActSqlModule
             Pop-Location
             Write-host "Changing current location to previously stored location: '$((Get-Location).Path)'"
         }
-        elseif (Get-Module -Name SQLPS -ListAvailable)
+        elseif ((Get-Module -Name SQLPS -ListAvailable) -and ($hostVersionInfo -lt 6))
         {
             Write-host "SQLPS PowerShell module found"
             
@@ -344,43 +348,29 @@ function Import-ActSqlModule
             Set-ExecutionPolicy  ByPass  
             Write-host "Set Existing policy as ByPass"        
             
-            Import-Module -Name SQLPS -DisableNameChecking
+            Import-Module -Name SQLPS -DisableNameChecking 
             if( !$? )  
             {
                 Write-host "The SQLPS PowerShell module cannot be loaded"
-                    
             }
-            Write-host "SQLPS PowerShell module successfully loaded"
-           
+            else 
+            {
+                Write-host "SQLPS PowerShell module successfully loaded"
+            }
             Set-ExecutionPolicy  $policy
             Write-host "Reset Existing policy as $($policy)"
             
             Pop-Location
             Write-host "Changing current location to previously stored location: '$((Get-Location).Path)'"
         }
-        elseif (Get-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100 -Registered -ErrorAction SilentlyContinue)
-        {
-            Write-host "SQL PowerShell snapin found"
-
-            Add-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100
-            if( !$? )  
-            {
-                Write-host "Sql PowerShell snapins SqlServerCmdletSnapin100 and sqlserverprovidersnapin100 cannot be added."
-            }
-
-            Write-host "SQL PowerShell snapins SqlServerCmdletSnapin100 and sqlserverprovidersnapin100 successfully added"
-            
-            [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.Smo') | Out-Null
-            Write-host "SQL Server Management Objects .NET assembly successfully loaded"
-        }
         else
         {
-            Write-host "SqlServer or SQLPS PowerShell module or snapin not found"
+            Write-host "SqlServer or SQLPS PowerShell module not found"
         }
     }
     else
     {
-        Write-host "SQL PowerShell module or snapin already loaded"
+        Write-host "SQL PowerShell module already loaded"
     }
     
 }
