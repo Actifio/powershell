@@ -321,11 +321,11 @@ function Import-ActSqlModule
             Import-Module -Name SqlServer -DisableNameChecking
             if( !$? )  
             {
-                Write-host "The SqlServer PowerShell module cannot be loaded"
-                    
+                Write-host "The SqlServer PowerShell module cannot be loaded"     
             }
-            Write-host "SqlServer PowerShell module successfully loaded"
-            
+            else {
+                Write-host "SqlServer PowerShell module successfully loaded"
+            }    
             if($policy -ne "ByPass")
             {
                 Set-ExecutionPolicy  $policy
