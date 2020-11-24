@@ -295,7 +295,7 @@ function Get-SrcSql-Info ([string]$vdpip)
 function Import-ActSqlModule
 {
     Write-host "Importing SqlServer PowerShell module"
-    if ( -not(Get-Module -Name SqlServer) -and (-not(Get-Module -Name SQLPS)) -and (-not(Get-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100 -ErrorAction SilentlyContinue)))
+    if ( -not(Get-Module -Name SqlServer) -and (-not(Get-Module -Name SQLPS)))
     {
         Write-host "SqlServer or SQLPS PowerShell module or snapin not currently loaded"
         if (Get-Module -Name SqlServer -ListAvailable)
