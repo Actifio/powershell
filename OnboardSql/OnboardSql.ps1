@@ -15,6 +15,7 @@
 # Version 1.10 handle PowerShell 3.0.  addded automount and trim/unmap tests
 # Version 1.11 better agent health checks
 # Version 1.12 Ignore ReFS Disable Delete, handle iSCSI service using non-English name
+# Version 1.13 add warning about DBs with leading/trailing spaces in name.  Print script version.  Use SQL PS module to learn Instance Names
 #
 <#   
 .SYNOPSIS   
@@ -73,11 +74,14 @@ Param
   [string]$passwordfile
 )  ### Param
 
-$ScriptVersion = "1.12"
+$ScriptVersion = "1.13"
 
 function Get-SrcWin-Info ()
 {
     Write-Host "Gathering information on Windows Host. "
+
+    # script version!
+    $thisObject | Add-Member -MemberType NoteProperty -Name OnBoardSQLScriptVersion -Value $("$ScriptVersion")
 
     ## Find the Windows version on the source Windows Server
     $WinVer = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
@@ -265,14 +269,15 @@ function Get-SrcSql-Info ([string]$vdpip)
     $SQLInstances = $Null
     } else {
     $SQLInstalled = $True
-    $SQLInstances = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server').InstalledInstances
+    Import-ActSqlModule
+    $SQLInstances = $env:COMPUTERNAME | Foreach-Object {Get-ChildItem -Path "SQLSERVER:\SQL\$_"}
     }
     $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstances -Value $SQLInstances  
     $thisObject | Add-Member -MemberType NoteProperty -Name SqlInstalled -Value $SQLInstalled
 
     if ($vdpip -ne $null -And $vdpip -ne "") {
     $Pingable = Test-Connection $VDPIP -Count 1 -Quiet
-    $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable    
+    $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Pingable    se
     } else {
     $thisObject | Add-Member -MemberType NoteProperty -Name Pingable -Value $Null
     }
@@ -284,8 +289,103 @@ function Get-SrcSql-Info ([string]$vdpip)
         @{Label="LastError"; Expression={$_.Context.PostContext[3].Trim().SubString(12)}})
 
     $thisObject | Add-Member -MemberType NoteProperty -Name VssWriters -Value $VssWriters 
-    
+
 }      
+
+function Import-ActSqlModule
+{
+    Write-host "Importing SqlServer PowerShell module"
+    if ( -not(Get-Module -Name SqlServer) -and (-not(Get-Module -Name SQLPS)) -and (-not(Get-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100 -ErrorAction SilentlyContinue)))
+    {
+        Write-host "SqlServer or SQLPS PowerShell module or snapin not currently loaded"
+        if (Get-Module -Name SqlServer -ListAvailable)
+        {
+            Write-host "SqlServer PowerShell module found"
+            
+            Push-Location
+            Write-host "Storing the current location: '$((Get-Location).Path)'"
+            
+            $policy = Get-ExecutionPolicy
+            Write-host "Existing policy is $($policy)"
+            
+            if($policy -ne "ByPass")
+            {
+                Set-ExecutionPolicy  ByPass  
+                Write-host "Set Existing policy as ByPass"        
+            }
+            
+            Import-Module -Name SqlServer -DisableNameChecking
+            if( !$? )  
+            {
+                Write-host "The SqlServer PowerShell module cannot be loaded"
+                    
+            }
+            Write-host "SqlServer PowerShell module successfully loaded"
+            
+            if($policy -ne "ByPass")
+            {
+                Set-ExecutionPolicy  $policy
+                Write-host "Reset Existing policy as $($policy)"
+            }
+
+            Pop-Location
+            Write-host "Changing current location to previously stored location: '$((Get-Location).Path)'"
+        }
+        elseif (Get-Module -Name SQLPS -ListAvailable)
+        {
+            Write-host "SQLPS PowerShell module found"
+            
+            Push-Location
+            Write-host "Storing the current location: '$((Get-Location).Path)'"
+            
+            $policy = Get-ExecutionPolicy
+            Write-host "Existing policy is $($policy)"
+            
+            Set-ExecutionPolicy  ByPass  
+            Write-host "Set Existing policy as ByPass"        
+            
+            Import-Module -Name SQLPS -DisableNameChecking
+            if( !$? )  
+            {
+                Write-host "The SQLPS PowerShell module cannot be loaded"
+                    
+            }
+            Write-host "SQLPS PowerShell module successfully loaded"
+           
+            Set-ExecutionPolicy  $policy
+            Write-host "Reset Existing policy as $($policy)"
+            
+            Pop-Location
+            Write-host "Changing current location to previously stored location: '$((Get-Location).Path)'"
+        }
+        elseif (Get-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100 -Registered -ErrorAction SilentlyContinue)
+        {
+            Write-host "SQL PowerShell snapin found"
+
+            Add-PSSnapin -Name SqlServerCmdletSnapin100, SqlServerProviderSnapin100
+            if( !$? )  
+            {
+                Write-host "Sql PowerShell snapins SqlServerCmdletSnapin100 and sqlserverprovidersnapin100 cannot be added."
+            }
+
+            Write-host "SQL PowerShell snapins SqlServerCmdletSnapin100 and sqlserverprovidersnapin100 successfully added"
+            
+            [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.Smo') | Out-Null
+            Write-host "SQL Server Management Objects .NET assembly successfully loaded"
+        }
+        else
+        {
+            Write-host "SqlServer or SQLPS PowerShell module or snapin not found"
+        }
+    }
+    else
+    {
+        Write-host "SQL PowerShell module or snapin already loaded"
+    }
+    
+}
+
+
 
 ##################################
 # Function: Get-TgtVDP-Info
@@ -483,16 +583,17 @@ function Show-Usage ()
 function Show-WinObject-Info ()
 {
   write-Host "`n--------- S T A T U S      R E P O R T      P A R T 1 ----------------------------------`n"  
-  write-Host "            Computer Name: $(($thisObject).ComputerName) "
-  write-Host "               IP Address: $(($thisObject).IPAddress) "
-  write-Host "                     FQDN: $(($thisObject).FQDN) "  
-  write-Host "                       OS: $(($thisObject).'WindowsVersion')"
-  write-Host "       PowerShell Version: $(($thisObject).'PowerShellVersion')"
-  write-Host "      ActPowerCLI Version: $(($thisObject).'ActPowerCLIVersion')"
-  write-Host "        Actifio Connector: $(($thisObject).'ActifioConnectorVersion')"
-  write-Host " Actifio Activity Monitor: $(($thisObject).'ActifioActivityMonitor')"
-  write-Host "               Auto Mount: $(($thisObject).'AutoMount')"
-  write-Host "   Trim and unmap feature: $(($thisObject).'TrimUnmapFeature')`n"
+  write-Host "             Computer Name: $(($thisObject).ComputerName) "
+  write-Host "                IP Address: $(($thisObject).IPAddress) "
+  write-Host "                      FQDN: $(($thisObject).FQDN) "  
+  write-Host "                        OS: $(($thisObject).'WindowsVersion')"
+  write-Host "        PowerShell Version: $(($thisObject).'PowerShellVersion')"
+  write-Host "Onboard SQL Script Version: $(($thisObject).'OnBoardSQLScriptVersion')"
+  write-Host "       ActPowerCLI Version: $(($thisObject).'ActPowerCLIVersion')"
+  write-Host "         Actifio Connector: $(($thisObject).'ActifioConnectorVersion')"
+  write-Host "  Actifio Activity Monitor: $(($thisObject).'ActifioActivityMonitor')"
+  write-Host "                Auto Mount: $(($thisObject).'AutoMount')"
+  write-Host "    Trim and unmap feature: $(($thisObject).'TrimUnmapFeature')`n"
   write-Host "`n---------------------------------------------------------------------------`n"
   
 }
@@ -586,7 +687,7 @@ function New-SQLHTMLReport
     $ComputerName = "<h1>Computer name: $env:computername</h1>"
 
     
-    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,ActPowerCLIVersion,ActifioConnectorVersion,ActifioActivityMonitor,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
+    $OSinfo = $thisobject | ConvertTo-Html -As List -Property WindowsVersion,FQDN,IPAddress,PowerShellVersion,OnBoardSQLScriptVersion,ActPowerCLIVersion,ActifioConnectorVersion,ActifioActivityMonitor,AutoMount,TrimUnmapFeature -Fragment -PreContent "<h2>Operating System Information</h2>"
 
     # if AAM is not installed, we complain.  Note we complain even if Connector is NOT installed, bit this reminds user to enable it!
     if ($thisobject.ActifioActivityMonitor -eq "NotInstalled")
@@ -672,7 +773,7 @@ function New-SQLHTMLReport
     }  
     else 
     {
-        $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent "<p>If the  SqlServerWriter is Not Found, then SQL Server is not installed or the SQL Server VSS Writer may be in a stopped state<br>Reference KB: 000010284.<p>"
+        $sqlinfo = $sqlobject | ConvertTo-Html -As List -Property SqlInstalled,SqlInstances,SqlServerWriter -Fragment -PreContent "<h2>SQL Information</h2>" -PostContent " <p>If the  SqlServerWriter is Not Found, then SQL Server is not installed or the SQL Server VSS Writer may be in a stopped state. <br>Reference KB: 000010284.<p><p>If the  SqlServerWriter is missing from 'vssadmin list writers', check for database names with leading or trailing spaces <br>Reference KB: 000045398.<p>"
     }
     
 
